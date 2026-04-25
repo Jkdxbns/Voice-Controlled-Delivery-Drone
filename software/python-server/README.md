@@ -1,12 +1,10 @@
 # Flask AI Assistant Server
 
-**Version:** 10.0 (API Restructured)  
-**Last Updated:** December 27, 2025  
+**Version:** 8.0  
+**Last Updated:** November 14, 2025  
 **Status:** ✅ Ready
 
 A powerful Flask-based REST API server providing Speech-to-Text transcription, AI assistant capabilities with intelligent task categorization, device management, and Bluetooth control integration.
-
-> **📌 v10.0 Update**: API endpoints have been restructured with service-based naming (`/lm/*`, `/stt/*`, `/ai/*`) for better organization. See [CHANGES_SUMMARY.md](CHANGES_SUMMARY.md) for migration details.
 
 ---
 
@@ -139,7 +137,7 @@ FlaskServer_v8/
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/lm/query` | POST | Two-pass AI assistant (text generation or BT control) |
+| `/api/v1/assistant/handle` | POST | Two-pass AI assistant (text generation or BT control) |
 
 **Request (Text Generation)**:
 ```json
@@ -179,13 +177,12 @@ FlaskServer_v8/
 | `/device/heartbeat` | POST | Device heartbeat (keeps online) |
 | `/device/connection-status` | POST | Report BT connect/disconnect |
 
-### Language Model & AI Processing
+### Legacy Endpoints
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/lm/generate` | POST | Direct LM text generation |
-| `/stt/transcribe` | POST | Audio transcription only |
-| `/ai/process` | POST | Audio/text processing (STT + LM) |
+| `/process` | POST | Audio/text processing (STT + LM) |
+| `/generate` | POST | Direct LM text generation |
 
 ---
 
@@ -290,12 +287,12 @@ scripts\test_all_routes.bat
 
 ```bash
 # Text generation
-curl -X POST http://localhost:5000/lm/query \
+curl -X POST http://localhost:5000/api/v1/assistant/handle \
   -H "Content-Type: application/json" \
   -d "{\"user_query\": \"What is an apple?\"}"
 
 # Bluetooth control
-curl -X POST http://localhost:5000/lm/query \
+curl -X POST http://localhost:5000/api/v1/assistant/handle \
   -H "Content-Type: application/json" \
   -d "{\"user_query\": \"turn on drone lights\"}"
 ```
