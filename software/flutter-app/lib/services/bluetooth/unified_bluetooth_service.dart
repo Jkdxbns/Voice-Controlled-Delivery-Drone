@@ -9,7 +9,7 @@ import '../ble/ble_service.dart';
 import 'unified_bluetooth_database.dart';
 import 'bluetooth_settings_service.dart';
 import 'bluetooth_device_registration_service.dart';
-import '../heartbeat_service.dart';
+import '../websocket_service.dart';
 import '../../utils/app_logger.dart';
 
 class UnifiedBluetoothService {
@@ -66,8 +66,17 @@ class UnifiedBluetoothService {
   Map<String, UnifiedConnectionInfo> get currentConnectionStates =>
       Map.from(_connectionStates);
 
-  /// Initialize service
+  bool _isInitialized = false;
+  
+  /// Check if service is initialized
+  bool get isInitialized => _isInitialized;
+
+  /// Initialize service (safe to call multiple times)
   Future<void> initialize() async {
+    if (_isInitialized) {
+      return; // Already initialized, skip
+    }
+    
     await _classicService.initialize();
     await _settingsService.initialize();
     
@@ -76,6 +85,8 @@ class UnifiedBluetoothService {
     
     // Set up listeners
     _listenToConnectionChanges();
+    
+    _isInitialized = true;
     
     // Immediately sync current connection states from BLE service
     _syncBleConnectionStates();
@@ -609,13 +620,9 @@ class UnifiedBluetoothService {
   /// Report connection event to server (for real-time status sync)
   void _reportConnectionEvent(String deviceId, {required bool isConnected}) {
     try {
-      if (isConnected) {
-        // Report connection immediately
-        HeartbeatService.instance.reportConnection(deviceId);
-      } else {
-        // Report disconnection immediately
-        HeartbeatService.instance.reportDisconnection(deviceId);
-      }
+      // Send BT device update to server via WebSocket
+      // This tells the server which BT devices this phone has connected
+      WebSocketService.instance.sendBtUpdate();
     } catch (e) {
       AppLogger.error('Failed to report connection event: $e');
       // Non-critical - continue anyway

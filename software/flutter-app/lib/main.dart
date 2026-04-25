@@ -14,30 +14,31 @@ import 'ui/screens/bluetooth/bluetooth_controller_screen.dart';
 import 'constants/constants.dart';
 import 'config/app_config.dart';
 import 'services/preferences_service.dart';
-import 'services/tts_service.dart';
-import 'services/background_initializer.dart';
-import 'services/permissions/permission_service.dart';
 import 'services/permissions/permission_manager.dart';
-import 'services/server/server_config_service.dart';
-import 'services/device/device_info_service.dart';
-import 'services/api/device_registration_api_service.dart';
-import 'services/ble/ble_service.dart';
-import 'services/heartbeat_service.dart';
+import 'services/app_initialization_service.dart';
+import 'services/websocket_service.dart';
+import 'services/background_service_manager.dart';
 import 'utils/app_logger.dart';
+import 'utils/battery_optimization_helper.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize background service manager early
+  await BackgroundServiceManager.instance.initialize();
+  
   runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late ThemeMode _themeMode;
   bool _isInitialized = false;
 
@@ -45,104 +46,82 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _themeMode = ThemeMode.light;
+    // Register lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
     // All heavy work (config loading, SharedPreferences) runs in background isolate
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came back to foreground
+        AppLogger.info('[LIFECYCLE] App resumed - stopping background service');
+        BackgroundServiceManager.instance.stopService();
+        WebSocketService.instance.ensureConnected();
+        break;
+        
+      case AppLifecycleState.paused:
+        // App going to background
+        AppLogger.info('[LIFECYCLE] App paused - starting background service');
+        BackgroundServiceManager.instance.startService();
+        BackgroundServiceManager.instance.updateNotification(
+          title: 'COFFIN',
+          content: 'Maintaining connection in background...',
+        );
+        break;
+        
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
   Future<void> _initializeApp() async {
     try {
-      // ALWAYS initialize PreferencesService first (critical for app settings)
-      // This must happen before anything else that might use preferences
-      final prefsInitialized = await PreferencesService.init();
-      if (!prefsInitialized) {
-        AppLogger.error('Failed to initialize PreferencesService');
+      // Load config from assets (main thread - isolates can't use rootBundle reliably)
+      try {
+        final configString = await DefaultAssetBundle.of(context).loadString('assets/config.json');
+        final configJson = jsonDecode(configString) as Map<String, dynamic>;
+        AppConfig.initializeFromJson(configJson);
+        AppLogger.success('Config loaded from assets');
+      } catch (e) {
+        AppLogger.warning('Config loading failed, using defaults: $e');
       }
-
-      // Run config loading in background isolate using compute
-      final result = await BackgroundInitializer.initialize();
 
       if (!mounted) return;
 
-      if (result.success && result.configJson != null) {
-        // Parse and set AppConfig on main thread (lightweight operation)
-        final configJson =
-            jsonDecode(result.configJson!) as Map<String, dynamic>;
-        AppConfig.initializeFromJson(configJson);
+      // Use centralized initialization service
+      // This handles device registration via WebSocket
+      await AppInitializationService.instance.initialize();
 
-        // Reload preferences to pick up any config-based defaults
-        await PreferencesService.init();
-
-        // Initialize permission service
-        await PermissionService.instance.initialize();
-
-        // Initialize server config service
-        await ServerConfigService.instance.init();
-
-        // Initialize TTS service
-        await TtsService.instance.initialize();
-
-        AppLogger.info('Requesting startup permissions...');
-
-        // Request permissions with professional dialogs
-        if (mounted) {
-          await PermissionManager.instance.requestStartupPermissions(context);
-          AppLogger.success('Permission request flow completed');
-        }
-
-        // Initialize device info service
-        await DeviceInfoService.instance.initialize();
-
-        // Initialize BLE service and restore existing connections
-        AppLogger.info('Initializing BLE service...');
-        await BleService.instance.initialize();
-        AppLogger.success('BLE service initialized');
-
-        // Register device with server
-        if (mounted) {
-          await _registerDevice();
-        }
-
-        // Start heartbeat service to maintain online status
-        if (mounted) {
-          AppLogger.info('Starting heartbeat service...');
-          HeartbeatService.instance.start();
-          AppLogger.success('Heartbeat service started');
-        }
-
-        if (mounted) {
-          // Get theme from PreferencesService (now properly initialized on main thread)
-          final isDarkMode = PreferencesService.instance.isDarkMode;
-          setState(() {
-            _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-            _isInitialized = true;
-          });
-        }
-      } else {
-        // Handle initialization error - preferences already initialized above
-        AppLogger.warning('Background initialization failed, using defaults');
-
-        // Still initialize server config to load saved host/port
-        await ServerConfigService.instance.init();
-
-        if (mounted) {
-          final isDarkMode = PreferencesService.instance.isDarkMode;
-          setState(() {
-            _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-            _isInitialized = true;
-          });
-        }
+      if (mounted) {
+        // Get theme from PreferencesService
+        final isDarkMode = PreferencesService.instance.isDarkMode;
+        setState(() {
+          _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+          _isInitialized = true;
+        });
       }
     } catch (e) {
       AppLogger.error('Initialization error: $e');
-      // Handle initialization error - preferences should still work
-      // Still try to initialize server config
+      
+      // Fallback: try minimal initialization
       try {
-        await ServerConfigService.instance.init();
-      } catch (_) {
-        // Ignore - will use defaults
-      }
+        await PreferencesService.init();
+      } catch (_) {}
 
       if (mounted) {
         final isDarkMode = PreferencesService.isInitialized
@@ -153,80 +132,6 @@ class _MyAppState extends State<MyApp> {
           _isInitialized = true;
         });
       }
-    }
-  }
-
-  /// Register device with server
-  Future<void> _registerDevice() async {
-    try {
-      AppLogger.info('═══════════════════════════════════════════════════════');
-      AppLogger.info('[DEVICE REGISTRATION] Getting device info...');
-
-      final deviceInfo = await DeviceInfoService.instance.getDeviceInfo();
-
-      AppLogger.info('[DEVICE REGISTRATION] Device Info:');
-      AppLogger.info('  device_id: ${deviceInfo.deviceId}');
-      AppLogger.info('  device_name: ${deviceInfo.deviceName}');
-      AppLogger.info('  model_name: ${deviceInfo.modelName}');
-      AppLogger.info('  mac_address: ${deviceInfo.macAddress ?? "NULL"}');
-
-      // Check if MAC address is available
-      if (deviceInfo.macAddress == null || deviceInfo.macAddress!.isEmpty) {
-        AppLogger.error(
-          'No MAC address available - device may not persist in registry',
-        );
-        AppLogger.error(
-          'Device will use UUID fallback: ${deviceInfo.deviceId}',
-        );
-      } else {
-        AppLogger.success('MAC address available: ${deviceInfo.macAddress}');
-      }
-
-      final registrationService = DeviceRegistrationApiService(
-        baseUrl: ServerConfigService.instance.baseUrl,
-      );
-
-      // Try registration with retry logic
-      bool success = false;
-      int attempts = 0;
-      const maxAttempts = 3;
-
-      while (!success && attempts < maxAttempts) {
-        attempts++;
-        success = await registrationService.registerDevice(deviceInfo);
-
-        if (!success && attempts < maxAttempts) {
-          AppLogger.warning(
-            'Device registration attempt $attempts failed, retrying...',
-          );
-          await Future.delayed(
-            Duration(seconds: 2 * attempts),
-          ); // Exponential backoff
-        }
-      }
-
-      if (success) {
-        AppLogger.success('✓ Device registered: ${deviceInfo.deviceName}');
-        if (deviceInfo.macAddress != null) {
-          AppLogger.success('  └─ MAC: ${deviceInfo.macAddress}');
-        }
-      } else {
-        AppLogger.error(
-          '✗ Device registration failed after $maxAttempts attempts',
-        );
-        AppLogger.error('  └─ Device: ${deviceInfo.deviceName}');
-        AppLogger.error(
-          '  └─ Server may be offline, or check DeviceInfoService.getMacAddress()',
-        );
-        AppLogger.showToast(
-          'Device registration failed - check server connection',
-          isError: true,
-        );
-      }
-    } catch (e) {
-      AppLogger.error('Device registration error: $e');
-      // Non-critical error - app can continue without registration
-      // The heartbeat service will retry registration automatically
     }
   }
 
@@ -280,6 +185,66 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _initializeScreens();
+    
+    // Request startup permissions and battery optimization after first frame
+    // MainScreen is inside MaterialApp so MaterialLocalizations are available
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        // Request permissions first
+        AppLogger.info('Requesting startup permissions...');
+        await PermissionManager.instance.requestStartupPermissions(context);
+        AppLogger.success('Permission request flow completed');
+        
+        // Then request battery optimization
+        if (mounted) {
+          await _requestBatteryOptimization();
+        }
+      }
+    });
+  }
+  
+  /// Request battery optimization exemption for reliable background operation
+  Future<void> _requestBatteryOptimization() async {
+    try {
+      final isExempt = await BatteryOptimizationHelper.isIgnoringBatteryOptimizations();
+      
+      if (!isExempt) {
+        AppLogger.info('[BATTERY] Requesting battery optimization exemption...');
+        
+        // Show explanation dialog first
+        if (mounted) {
+          final shouldRequest = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Background Connection'),
+              content: const Text(
+                'COFFIN needs to run in the background to receive commands from other devices.\n\n'
+                'Please allow "Unrestricted" battery usage in the next screen to ensure reliable operation.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Later'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Allow'),
+                ),
+              ],
+            ),
+          );
+          
+          if (shouldRequest == true) {
+            await BatteryOptimizationHelper.requestDisableBatteryOptimization();
+            AppLogger.success('[BATTERY] Battery optimization exemption requested');
+          }
+        }
+      } else {
+        AppLogger.info('[BATTERY] Already exempt from battery optimization');
+      }
+    } catch (e) {
+      AppLogger.error('[BATTERY] Error requesting exemption: $e');
+    }
   }
 
   void _initializeScreens() {

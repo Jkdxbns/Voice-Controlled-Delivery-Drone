@@ -25,14 +25,26 @@ class FontSize {
   FontSize._();
 
   // ============================================================================
-  // FONT SIZES - 4 Main variants + extras for flexibility
+  // FONT SIZES - Full scale for flexibility
   // ============================================================================
+  
+  /// Micro - very small labels on widgets (e.g., joystick buttons)
+  static const double xxsmall = 8.0;
+  
+  /// Tiny - smallest readable text (rarely used)
+  static const double tiny = 9.0;
   
   /// Extra small - captions, timestamps, badges
   static const double xsmall = 10.0;
   
+  /// Extra small+ - slightly larger captions
+  static const double xsmallPlus = 11.0;
+  
   /// Small - secondary text, hints, labels
   static const double small = 12.0;
+  
+  /// Small+ - between small and medium
+  static const double smallPlus = 13.0;
   
   /// Medium - body text, default size (base)
   static const double medium = 14.0;
@@ -42,6 +54,9 @@ class FontSize {
   
   /// Extra large - section headers, titles
   static const double xlarge = 18.0;
+  
+  /// Extra large+ - slightly larger titles
+  static const double xlargePlus = 20.0;
   
   /// 2X large - page titles, major headings
   static const double xxlarge = 24.0;

@@ -180,6 +180,17 @@ class ComponentSize {
   static const double avatarXLarge = 72.0;
 
   // ============================================================================
+  // ICON SIZES
+  // ============================================================================
+  
+  static const double iconXSmall = 16.0;
+  static const double iconSmall = 20.0;
+  static const double iconMedium = 24.0;
+  static const double iconLarge = 32.0;
+  static const double iconXLarge = 48.0;
+  static const double iconXXLarge = 64.0;
+
+  // ============================================================================
   // CARD DIMENSIONS
   // ============================================================================
   
@@ -291,6 +302,20 @@ class AppDimensions {
   
   /// AppBar height as percentage of screen height (10% for debugging, change max to 100 later)
   double get appBarHeight => heightPercent(6, min: 40, max: 500);
+  
+  /// TabBar height for tabs with icon + text
+  double get tabBarHeight => _scale(56, min: 48, max: 64);
+
+  // ============================================================================
+  // RESPONSIVE ICON SIZES
+  // ============================================================================
+  
+  double get iconXSmall => _scale(ComponentSize.iconXSmall, min: 14, max: 18);
+  double get iconSmall => _scale(ComponentSize.iconSmall, min: 18, max: 24);
+  double get iconMedium => _scale(ComponentSize.iconMedium, min: 22, max: 28);
+  double get iconLarge => _scale(ComponentSize.iconLarge, min: 28, max: 40);
+  double get iconXLarge => _scale(ComponentSize.iconXLarge, min: 40, max: 56);
+  double get iconXXLarge => _scale(ComponentSize.iconXXLarge, min: 56, max: 80);
 
   // ============================================================================
   // RESPONSIVE AVATAR SIZES
