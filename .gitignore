@@ -75,11 +75,17 @@ software/flutter-app/macos/Flutter/ephemeral/
 software/flutter-app/linux/flutter/ephemeral/
 software/flutter-app/windows/flutter/ephemeral/
 
-# ---- Models / large binaries (uncomment if too large for GitHub) ----
-# *.pt
-# *.onnx
-# *.engine
-# *.weights
+# ---- Models / large binaries ----
+# HuggingFace cache (re-downloaded at runtime)
+software/python-server/models/__models__/
+**/__models__/
+# Common heavy weights — keep ignored unless explicitly committed
+*.pt
+*.onnx
+*.engine
+*.weights
+*.bin
+*.safetensors
 
 # ---- Archives ----
 *.zip
