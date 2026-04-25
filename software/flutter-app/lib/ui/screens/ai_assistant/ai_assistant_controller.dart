@@ -135,8 +135,10 @@ class AIAssistantController {
         } else {
           _showSnackBar('Microphone permission is required to record audio');
         }
-        return;
       }
+      // Always return after permission dialog - user must press button again
+      // This maintains push-to-talk behavior
+      return;
     }
 
     final success = await AudioService.instance.startRecording();
@@ -335,6 +337,17 @@ class AIAssistantController {
       // BT control - route command to device
       AppLogger.info('Handling bt-control JSON response');
       await _handleBtControlResponse(result.jsonResponse!);
+    } else if (result.isRouted) {
+      // Command was routed to another device via WebSocket
+      AppLogger.success('Command routed: ${result.routedMessage}');
+      processingState = ProcessingState.idle;
+      _showSnackBar(
+        result.routedMessage ?? 'Command sent',
+        duration: AppConstants.shortSnackbarDuration,
+      );
+      // Speak confirmation
+      final deviceName = result.targetDevice ?? 'device';
+      await TtsService.instance.speak('Command sent to $deviceName');
     } else if (result.isError) {
       // Error occurred
       AppLogger.error('Assistant API error: ${result.error}');
@@ -357,6 +370,7 @@ class AIAssistantController {
         AppLogger.error('BT control error: $errorMsg');
         processingState = ProcessingState.idle;
         _showSnackBar(errorMsg, duration: AppConstants.snackbarDisplayDuration);
+        await TtsService.instance.speak('Command failed: $errorMsg');
         return;
       }
 
@@ -365,27 +379,39 @@ class AIAssistantController {
       
       processingState = ProcessingState.idle;
 
-      // Show status notification based on success
+      // Extract clean device name for TTS
+      final deviceName = _extractDeviceName(response.targetDevice);
+
+      // Provide feedback based on success
       if (success) {
-        final deviceName = response.targetDevice;
         final command = response.output.generatedOutput;
         _showSnackBar(
           'Sent to $deviceName: $command',
           duration: AppConstants.shortSnackbarDuration,
         );
         AppLogger.info('BT control command sent successfully');
+        // Speak confirmation via TTS
+        await TtsService.instance.speak('Sent command to $deviceName');
       } else {
         _showSnackBar(
           'Failed to send command',
           duration: AppConstants.shortSnackbarDuration,
         );
         AppLogger.warning('BT control command failed');
+        // Speak failure via TTS
+        await TtsService.instance.speak('Failed to send command to $deviceName');
       }
     } catch (e) {
       AppLogger.error('Error handling BT control: $e');
       processingState = ProcessingState.idle;
       _showSnackBar('Failed to process command: $e');
     }
+  }
+
+  /// Extract device name from device string (e.g., "drone (MAC: XX:XX:XX)" -> "drone")
+  String _extractDeviceName(String deviceString) {
+    final match = RegExp(r'^([^(]+)').firstMatch(deviceString);
+    return match?.group(1)?.trim() ?? deviceString;
   }
 
   /// Handle server stream response

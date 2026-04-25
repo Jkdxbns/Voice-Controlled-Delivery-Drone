@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../constants/app_dimensions.dart';
+import '../../constants/app_typography.dart';
 
 /// Professional permission request dialog for Wi-Fi access
 class WiFiPermissionDialog extends StatelessWidget {
@@ -18,12 +20,12 @@ class WiFiPermissionDialog extends StatelessWidget {
     return AlertDialog(
       icon: Icon(
         Icons.wifi,
-        size: 48,
+        size: context.dimensions.iconXLarge,
         color: theme.colorScheme.primary,
       ),
       title: const Text(
         'Network Information Access',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: FontSize.xlargePlus, fontWeight: FontWeight.bold),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -31,7 +33,7 @@ class WiFiPermissionDialog extends StatelessWidget {
         children: [
           const Text(
             'This app needs to access network information to:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: FontSize.large, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 16),
           _buildFeatureItem(Icons.device_hub, 'Register device with server'),
@@ -57,7 +59,7 @@ class WiFiPermissionDialog extends StatelessWidget {
                 const Expanded(
                   child: Text(
                     'Network info is used only for device identification',
-                    style: TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: FontSize.smallPlus),
                   ),
                 ),
               ],
@@ -89,12 +91,12 @@ class WiFiPermissionDialog extends StatelessWidget {
   Widget _buildFeatureItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.green),
+        Icon(icon, size: ComponentSize.iconSmall, color: Colors.green),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: FontSize.medium),
           ),
         ),
       ],

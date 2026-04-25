@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../constants/constants.dart';
 import '../../services/preferences_service.dart';
+import '../../services/shared_folder_service.dart';
 import '../../services/tts_service.dart';
-import '../../services/permissions/permission_manager.dart';
-import '../../utils/app_logger.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
@@ -22,14 +21,12 @@ class SettingsScreenState extends State<SettingsScreen> {
   late double _ttsSpeed;
   late double _ttsPitch;
   late double _ttsVolume;
-  bool _micPermissionGranted = false;
-  bool _loadingPermissions = true;
+  String? _sharedFolderUri;
 
   @override
   void initState() {
     super.initState();
     _loadPreferences();
-    _checkPermissions();
   }
 
   void _loadPreferences() {
@@ -41,6 +38,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       _ttsSpeed = prefs.ttsSpeed;
       _ttsPitch = prefs.ttsPitch;
       _ttsVolume = prefs.ttsVolume;
+      _sharedFolderUri = prefs.sharedFolderUri;
     });
   }
 
@@ -48,46 +46,6 @@ class SettingsScreenState extends State<SettingsScreen> {
     final prefs = PreferencesService.instance;
     await prefs.setDarkMode(_useDarkMode);
     widget.onThemeChanged(_useDarkMode);
-  }
-  
-  Future<void> _checkPermissions() async {
-    final micStatus = await Permission.microphone.status;
-    setState(() {
-      _micPermissionGranted = micStatus.isGranted;
-      _loadingPermissions = false;
-    });
-  }
-  
-  Future<void> _requestPermissions() async {
-    await PermissionManager.instance.requestPermissionsManually(context);
-    // Recheck permissions after request
-    await _checkPermissions();
-  }
-  
-  Future<void> _resetPermissionDialogs() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(AppStrings.settingsResetDialogTitle),
-        content: const Text(AppStrings.settingsResetDialogContent),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(AppStrings.actionCancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(AppStrings.settingsReset),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true) {
-      await PermissionManager.instance.resetPermissionFlags();
-      // ignore: use_build_context_synchronously
-      AppLogger.success(AppStrings.settingsPermDialogsReset);
-    }
   }
 
   @override
@@ -114,6 +72,40 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const Divider(),
+
+          // Shared Folder Section
+          _buildSectionHeader(AppStrings.settingsSharedFolder),
+          ListTile(
+            leading: const Icon(AppIcons.storage),
+            title: const Text(AppStrings.settingsSelectSharedFolder),
+            subtitle: Text(
+              _sharedFolderUri == null || _sharedFolderUri!.isEmpty
+                  ? AppStrings.settingsSharedFolderNotSet
+                  : AppStrings.settingsSharedFolderSet,
+            ),
+            onTap: () async {
+              final uri = await SharedFolderService.instance.pickSharedFolder();
+              if (uri != null && mounted) {
+                setState(() {
+                  _sharedFolderUri = uri;
+                });
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete),
+            title: const Text(AppStrings.settingsClearSharedFolder),
+            subtitle: const Text(AppStrings.settingsSharedFolderClearHint),
+            onTap: () async {
+              await SharedFolderService.instance.clearSharedFolder();
+              if (mounted) {
+                setState(() {
+                  _sharedFolderUri = null;
+                });
+              }
+            },
+          ),
+          const Divider(),
           
           // Download Settings - COMMENTED OUT
           // _buildSectionHeader(AppStrings.settingsDownload),
@@ -131,38 +123,6 @@ class SettingsScreenState extends State<SettingsScreen> {
 
           // Permissions Section
           _buildSectionHeader(AppStrings.settingsPermissions),
-          ListTile(
-            leading: Icon(
-              _micPermissionGranted ? AppIcons.checkCircle : AppIcons.cancel,
-              color: _micPermissionGranted ? colors.success : colors.error,
-            ),
-            title: const Text(AppStrings.settingsMicPermission),
-            subtitle: Text(
-              _loadingPermissions
-                  ? AppStrings.settingsChecking
-                  : _micPermissionGranted
-                      ? AppStrings.settingsMicGranted
-                      : AppStrings.settingsMicNotGranted,
-            ),
-            trailing: _micPermissionGranted
-                ? null
-                : ElevatedButton(
-                    onPressed: _requestPermissions,
-                    child: const Text(AppStrings.settingsGrant),
-                  ),
-          ),
-          ListTile(
-            leading: const Icon(AppIcons.refresh),
-            title: const Text(AppStrings.settingsRequestPermissions),
-            subtitle: const Text(AppStrings.settingsShowPermDialogs),
-            onTap: _requestPermissions,
-          ),
-          ListTile(
-            leading: const Icon(AppIcons.restore),
-            title: const Text(AppStrings.settingsResetPermDialogs),
-            subtitle: const Text(AppStrings.settingsAllowDialogsNextLaunch),
-            onTap: _resetPermissionDialogs,
-          ),
           ListTile(
             leading: const Icon(AppIcons.settings),
             title: const Text(AppStrings.settingsOpenAppSettings),

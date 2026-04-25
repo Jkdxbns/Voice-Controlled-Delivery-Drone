@@ -24,35 +24,40 @@ class DeviceInfoService {
   String? _cachedDeviceName;
   String? _cachedModelName;
   String? _cachedMacAddress;
+  bool _isInitialized = false;
 
-  /// Initialize the service (load cached device ID)
+  /// Initialize the service (pre-fetch all device info to cache)
   Future<void> initialize() async {
+    if (_isInitialized) return;
+    
     try {
+      // Pre-fetch ALL device info during initialization
+      // This prevents multiple concurrent fetches later
       _cachedDeviceId = await _getOrCreateDeviceId();
+      _cachedDeviceName = await _getDeviceName();
+      _cachedModelName = await _getModelName();
+      _cachedMacAddress = await getMacAddress();
+      
+      _isInitialized = true;
       AppLogger.info('Device ID initialized: $_cachedDeviceId');
     } catch (e) {
       AppLogger.error('Failed to initialize DeviceInfoService: $e');
     }
   }
 
-  /// Get complete device information
+  /// Get complete device information (uses cached values after init)
   Future<DeviceInfoData> getDeviceInfo() async {
+    // Ensure initialized
+    if (!_isInitialized) {
+      await initialize();
+    }
+    
     try {
-      final deviceId = await _getOrCreateDeviceId();
-      final deviceName = await _getDeviceName();
-      final modelName = await _getModelName();
-      final macAddress = await getMacAddress();
-
-      _cachedDeviceId = deviceId;
-      _cachedDeviceName = deviceName;
-      _cachedModelName = modelName;
-      _cachedMacAddress = macAddress;
-
       return DeviceInfoData(
-        deviceId: deviceId,
-        deviceName: deviceName,
-        modelName: modelName,
-        macAddress: macAddress,
+        deviceId: _cachedDeviceId ?? await _getOrCreateDeviceId(),
+        deviceName: _cachedDeviceName ?? await _getDeviceName(),
+        modelName: _cachedModelName ?? await _getModelName(),
+        macAddress: _cachedMacAddress,
       );
     } catch (e) {
       AppLogger.error('Failed to get device info: $e');

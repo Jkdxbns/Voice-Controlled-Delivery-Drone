@@ -101,6 +101,7 @@ class PreferencesService {
   static const String _keyServerPort = 'server_port';
   static const String _keyDefaultSttModel = 'default_stt_model';
   static const String _keyDefaultLmModel = 'default_lm_model';
+  static const String _keySharedFolderUri = 'shared_folder_uri';
 
   // Theme Settings
   bool get isDarkMode {
@@ -222,6 +223,20 @@ class PreferencesService {
       return false;
     }
     return await _prefs!.setDouble(_keyTtsVolume, value);
+  }
+
+  // Shared Folder (Storage Access Framework)
+  String? get sharedFolderUri {
+    _ensureInitialized();
+    return _prefs?.getString(_keySharedFolderUri);
+  }
+
+  Future<bool> setSharedFolderUri(String uri) async {
+    if (_prefs == null) {
+      AppLogger.error('Cannot save shared folder URI - PreferencesService not initialized');
+      return false;
+    }
+    return await _prefs!.setString(_keySharedFolderUri, uri);
   }
 
   // Server Configuration

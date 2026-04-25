@@ -16,9 +16,12 @@ class BleService {
   final _dataEventsController = StreamController<BleDeviceDataEvent>.broadcast();
   final _connectionStatesController = StreamController<Map<String, BleConnectionState>>.broadcast();
 
+  bool _isInitialized = false;
+
   BleService._init();
 
   // Getters
+  bool get isInitialized => _isInitialized;
   Stream<BleDeviceDataEvent> get dataEvents => _dataEventsController.stream;
   Stream<Map<String, BleConnectionState>> get connectionStates => _connectionStatesController.stream;
   Map<String, BleConnectionState> get currentStates => 
@@ -30,8 +33,12 @@ class BleService {
           .toList();
   BleDeviceManager get deviceManager => BleDeviceManager.instance;
 
-  /// Initialize and check for already connected devices
+  /// Initialize and check for already connected devices (safe to call multiple times)
   Future<void> initialize() async {
+    if (_isInitialized) {
+      return; // Already initialized
+    }
+    
     AppLogger.info('Initializing BLE service and checking for existing connections');
     
     try {
@@ -40,6 +47,7 @@ class BleService {
       
       if (savedDevices.isEmpty) {
         AppLogger.info('No saved BLE devices found');
+        _isInitialized = true;
         return;
       }
       
@@ -55,6 +63,8 @@ class BleService {
           AppLogger.debug('Device ${config.deviceId} not currently connected: $e');
         }
       }
+      
+      _isInitialized = true;
     } catch (e) {
       AppLogger.error('Failed to initialize BLE service: $e');
     }
