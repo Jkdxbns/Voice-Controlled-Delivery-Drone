@@ -1,0 +1,95 @@
+# ---- OS ----
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---- Editors / IDEs ----
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Flask / runtime ----
+software/python-server/logs/
+software/python-server/files_cache/
+software/python-server/scp/
+*.log
+*.pid
+*.sqlite
+*.sqlite3
+*.db
+
+# ---- Secrets ----
+software/python-server/secrets/apis.json
+**/secrets/apis.json
+.env
+.env.*
+*.pem
+*.key
+
+# ---- Flutter / Dart ----
+software/flutter-app/build/
+software/flutter-app/.dart_tool/
+software/flutter-app/.flutter-plugins
+software/flutter-app/.flutter-plugins-dependencies
+software/flutter-app/.packages
+software/flutter-app/.pub-cache/
+software/flutter-app/.pub/
+software/flutter-app/pubspec.lock.bak
+
+# Flutter ephemeral (per-platform generated)
+software/flutter-app/android/.gradle/
+software/flutter-app/android/app/debug/
+software/flutter-app/android/app/profile/
+software/flutter-app/android/app/release/
+software/flutter-app/android/.idea/
+software/flutter-app/android/local.properties
+software/flutter-app/android/key.properties
+software/flutter-app/android/**/GeneratedPluginRegistrant.java
+software/flutter-app/ios/Pods/
+software/flutter-app/ios/.symlinks/
+software/flutter-app/ios/Flutter/Flutter.framework
+software/flutter-app/ios/Flutter/Flutter.podspec
+software/flutter-app/ios/Flutter/flutter_export_environment.sh
+software/flutter-app/ios/Flutter/Generated.xcconfig
+software/flutter-app/ios/Flutter/ephemeral/
+software/flutter-app/macos/Flutter/ephemeral/
+software/flutter-app/linux/flutter/ephemeral/
+software/flutter-app/windows/flutter/ephemeral/
+
+# ---- Models / large binaries (uncomment if too large for GitHub) ----
+# *.pt
+# *.onnx
+# *.engine
+# *.weights
+
+# ---- Archives ----
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# ---- Misc ----
+*.bak
+*.tmp
+~$*
