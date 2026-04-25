@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Patch for flutter_bluetooth_serial SDK 36 compatibility -->
+    <!-- Provide fallback for lStar attribute -->
+    <attr name="lStar" format="float" />
+</resources>

@@ -79,7 +79,11 @@ class ChatApiService {
       AppLogger.info('Generating: ${prompt.substring(0, prompt.length.clamp(0, 50))}...');
 
       final request = http.Request('POST', url);
-      request.headers['Content-Type'] = 'application/json';
+      
+      // Add device tracking headers
+      final headers = await ApiHeaders.getJsonHeaders();
+      request.headers.addAll(headers);
+      
       request.body = jsonEncode({
         'prompt': prompt,
         if (model != null) 'model': model,

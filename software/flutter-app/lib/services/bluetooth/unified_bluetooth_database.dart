@@ -7,6 +7,7 @@ import 'dart:async';
 class UnifiedBluetoothDatabase {
   static final UnifiedBluetoothDatabase instance = UnifiedBluetoothDatabase._init();
   static Database? _database;
+  static bool _isInitializing = false;
   
   // Write lock to prevent simultaneous database writes
   final _writeLock = Completer<void>()..complete();
@@ -17,7 +18,16 @@ class UnifiedBluetoothDatabase {
   /// Get database instance
   Future<Database> get database async {
     if (_database != null) return _database!;
+    if (_isInitializing) {
+      // Wait for initialization to complete
+      while (_isInitializing) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+      return _database!;
+    }
+    _isInitializing = true;
     _database = await _initDB('unified_bluetooth.db');
+    _isInitializing = false;
     return _database!;
   }
 

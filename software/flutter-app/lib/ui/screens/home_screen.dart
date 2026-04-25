@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 
 class HomeScreen extends StatelessWidget {
   final Function(int)? onNavigate;
@@ -8,30 +8,33 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           primary: false, // Don't use PrimaryScrollController
-          padding: UIConfig.paddingAllLarge,
+          padding: spacing.paddingLarge,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Tools Section
-              _buildSectionHeader(context, UIConfig.textTools),
-              SizedBox(height: UIConfig.spacingMedium),
+              _buildSectionHeader(context, AppStrings.navTools),
+              SizedBox(height: spacing.medium),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: UIConfig.spacingLarge,
-                mainAxisSpacing: UIConfig.spacingLarge,
+                crossAxisCount: dimensions.gridColumnCount.clamp(1, 2),
+                crossAxisSpacing: spacing.large,
+                mainAxisSpacing: spacing.large,
                 children: [
                   _buildTile(
                     context: context,
-                    icon: UIConfig.iconAI,
-                    title: UIConfig.textAiAssistant,
-                    subtitle: UIConfig.textChatWithAi,
-                    color: UIConfig.colorTileAiAssistant,
+                    icon: AppIcons.ai,
+                    title: AppStrings.navAiAssistant,
+                    subtitle: AppStrings.homeSubtitleAi,
+                    color: AppColors.tileAiAssistant,
                     onTap: () => onNavigate?.call(1),
                   ),
                 ],
@@ -46,9 +49,7 @@ class HomeScreen extends StatelessWidget {
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: UIConfig.fontSizeXXL,
-        fontWeight: UIConfig.fontWeightBold,
+      style: context.typography.headingLarge.copyWith(
         color: Theme.of(context).colorScheme.onSurface,
       ),
     );
@@ -62,46 +63,47 @@ class HomeScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: UIConfig.radiusLarge,
+      borderRadius: dimensions.borderRadiusLarge,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: UIConfig.radiusLarge,
+          borderRadius: dimensions.borderRadiusLarge,
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-            width: UIConfig.borderWidthThin,
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: AppOpacity.overlay),
+            width: BorderSize.thin,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: UIConfig.paddingAllLarge,
+              padding: spacing.paddingLarge,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: AppOpacity.hover),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                size: UIConfig.iconSizeLarge,
+                size: iconSize.xlarge,
                 color: color,
               ),
             ),
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
             Text(
               title,
-              style: TextStyle(
-                fontSize: UIConfig.fontSizeMedium,
-                fontWeight: UIConfig.fontWeightBold,
-              ),
+              style: typography.titleMedium,
             ),
-            SizedBox(height: UIConfig.spacingSmall * 0.5),
+            SizedBox(height: spacing.xsmall),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: UIConfig.fontSizeSmall,
+              style: typography.bodySmall.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),

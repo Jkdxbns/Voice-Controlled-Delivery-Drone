@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/chat_message.dart';
 import '../chat_bubble.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 /// Chat message list widget
 class ChatMessageList extends StatelessWidget {
@@ -20,28 +20,33 @@ class ChatMessageList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    final colors = AppColorScheme.of(context);
+    
     if (messages.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              UIConfig.iconEmptyChat,
-              size: UIConfig.iconSizeLarge,
-              color: UIConfig.colorGrey400,
+              AppIcons.emptyChat,
+              size: iconSize.xxlarge,
+              color: colors.textTertiary,
             ),
-            SizedBox(height: UIConfig.spacingLarge),
+            SizedBox(height: spacing.large),
             Text(
-              UIConfig.textStartConversation,
-              style: UIConfig.textStyleSubtitle.copyWith(
-                color: UIConfig.colorGrey600,
+              AppStrings.aiStartConversation,
+              style: typography.titleMedium.copyWith(
+                color: colors.textSecondary,
               ),
             ),
-            SizedBox(height: UIConfig.spacingSmall),
+            SizedBox(height: spacing.small),
             Text(
-              UIConfig.textTypeOrRecord,
-              style: UIConfig.textStyleBody.copyWith(
-                color: UIConfig.colorGrey500,
+              AppStrings.aiTypeOrRecord,
+              style: typography.bodyMedium.copyWith(
+                color: colors.textTertiary,
               ),
             ),
           ],
@@ -53,8 +58,8 @@ class ChatMessageList extends StatelessWidget {
       controller: scrollController,
       primary: false,
       padding: EdgeInsets.symmetric(
-        vertical: UIConfig.spacingLarge,
-        horizontal: UIConfig.spacingSmall,
+        vertical: spacing.medium,
+        horizontal: spacing.small,
       ),
       itemCount: messages.length,
       itemBuilder: (context, index) {

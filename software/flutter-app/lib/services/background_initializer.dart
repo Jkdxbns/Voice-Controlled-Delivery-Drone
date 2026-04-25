@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Background initialization service that runs heavy startup tasks off the main thread
+/// 
+/// Note: SharedPreferences should NOT be initialized here because:
+/// 1. Isolates have separate memory - instances cannot be shared with main thread
+/// 2. SharedPreferences is already optimized (async load, memory caching)
+/// 3. Any instance created here would be discarded anyway
 class BackgroundInitializer {
-  /// Initialize app configuration and preferences in a background isolate
+  /// Initialize app configuration in a background isolate
+  /// Only performs CPU-intensive tasks like JSON parsing
   static Future<InitializationResult> initialize() async {
     // Run heavy initialization work off the main thread using compute
     return await compute(_initializeInBackground, null);
@@ -15,19 +20,17 @@ class BackgroundInitializer {
 /// Top-level function for background initialization (required for compute)
 Future<InitializationResult> _initializeInBackground(_) async {
   try {
-    // Load config from assets (this involves JSON parsing)
+    // Load config from assets (this involves file I/O and JSON parsing)
     final configString = await rootBundle.loadString('assets/config.json');
     
-    // Initialize SharedPreferences (this can be slow on first run)
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Get theme preference
-    final isDarkMode = prefs.getBool('theme_mode') ?? false;
+    // NOTE: Do NOT initialize SharedPreferences here!
+    // - Isolates have separate memory spaces
+    // - Any instance created here cannot be shared with the main thread
+    // - PreferencesService.init() handles this correctly on the main thread
     
     return InitializationResult(
       success: true,
       configJson: configString,
-      isDarkMode: isDarkMode,
     );
   } catch (e) {
     return InitializationResult(
@@ -41,13 +44,11 @@ Future<InitializationResult> _initializeInBackground(_) async {
 class InitializationResult {
   final bool success;
   final String? configJson;
-  final bool isDarkMode;
   final String? error;
 
   InitializationResult({
     required this.success,
     this.configJson,
-    this.isDarkMode = false,
     this.error,
   });
 }

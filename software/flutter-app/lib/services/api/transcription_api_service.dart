@@ -20,7 +20,7 @@ class TranscriptionApiService {
     required String sttModel,
   }) async {
     try {
-      final url = Uri.parse('$baseUrl/transcribe');
+      final url = Uri.parse('$baseUrl${ApiEndpoints.transcribe}');
       
       AppLogger.info('Uploading audio for transcription: $audioFilePath');
       AppLogger.info('STT Model: $sttModel');

@@ -10,11 +10,20 @@ class BluetoothSettingsService {
   BluetoothSettingsService._();
 
   Database? _db;
+  bool _isInitialized = false;
 
-  /// Initialize the service
+  /// Check if initialized
+  bool get isInitialized => _isInitialized;
+
+  /// Initialize the service (safe to call multiple times)
   Future<void> initialize() async {
+    if (_isInitialized) {
+      return; // Already initialized
+    }
+    
     _db = await DatabaseHelper.instance.database;
     await BluetoothSettingsDatabase.initializeGlobalSettings(_db!);
+    _isInitialized = true;
     AppLogger.info('BluetoothSettingsService initialized');
   }
 

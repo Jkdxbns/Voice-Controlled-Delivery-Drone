@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../services/api/server_api_service.dart';
 import '../../../services/server/server_config_service.dart';
 import '../../../utils/app_logger.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 /// Server settings screen
 /// Allows users to configure server host and port
@@ -92,22 +92,22 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
     final port = int.tryParse(_portController.text.trim());
 
     if (host.isEmpty) {
-      _showSnackBar('Host cannot be empty', UIConfig.colorError);
+      _showSnackBar(AppStrings.errorHostEmpty, AppColors.error);
       return;
     }
 
     if (port == null || port <= 0 || port > 65535) {
-      _showSnackBar('Invalid port number', UIConfig.colorError);
+      _showSnackBar(AppStrings.errorInvalidPort, AppColors.error);
       return;
     }
 
     final success = await ServerConfigService.instance.updateServer(host, port);
 
     if (success) {
-      _showSnackBar('Server configuration saved', UIConfig.colorSuccess);
+      _showSnackBar(AppStrings.statusServerConfigSaved, AppColors.success);
       AppLogger.success('Server config updated: $host:$port');
     } else {
-      _showSnackBar('Failed to save configuration', UIConfig.colorError);
+      _showSnackBar(AppStrings.errorSaveFailed, AppColors.error);
     }
   }
 
@@ -137,7 +137,7 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
     if (confirmed == true) {
       await ServerConfigService.instance.resetToDefaults();
       _loadCurrentConfig();
-      _showSnackBar('Reset to default configuration', UIConfig.colorInfo);
+      _showSnackBar(AppStrings.statusResetToDefault, AppColors.info);
     }
   }
 
@@ -161,30 +161,22 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    final colors = AppColorScheme.of(context);
+    
     return Scaffold(
       body: ListView(
         primary: false,
-        padding: UIConfig.paddingAllLarge,
+        padding: spacing.all(Spacing.large),
         children: [
-          // Header
-          Text(
-            'Server Settings',
-            style: UIConfig.textStyleHeader,
-          ),
-          SizedBox(height: UIConfig.spacingSmall),
-          Text(
-            'Configure the Flask server connection',
-            style: UIConfig.textStyleBody.copyWith(
-              color: UIConfig.colorGrey600,
-            ),
-          ),
-          SizedBox(height: UIConfig.spacingXLarge),
-
           // Configuration Card
           Card(
-            elevation: 2,
+            elevation: AppElevation.small,
             child: Padding(
-              padding: UIConfig.paddingAllLarge,
+              padding: spacing.all(Spacing.large),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -195,11 +187,11 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
                       labelText: 'Server Host',
                       hintText: 'e.g., 192.168.0.168 or localhost',
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.dns),
+                      prefixIcon: Icon(AppIcons.server),
                     ),
                     keyboardType: TextInputType.url,
                   ),
-                  SizedBox(height: UIConfig.spacingLarge),
+                  SizedBox(height: spacing.large),
 
                   // Port field
                   TextField(
@@ -208,21 +200,21 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
                       labelText: 'Server Port',
                       hintText: 'e.g., 5000',
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.network_check),
+                      prefixIcon: Icon(AppIcons.wifi),
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                     ],
                   ),
-                  SizedBox(height: UIConfig.spacingLarge),
+                  SizedBox(height: spacing.large),
 
                   // Current URL display
                   Container(
-                    padding: UIConfig.paddingAllMedium,
+                    padding: spacing.all(Spacing.medium),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: UIConfig.radiusMedium,
+                      borderRadius: dimensions.borderRadiusMedium,
                       border: Border.all(
                         color: Theme.of(context).colorScheme.outline,
                       ),
@@ -230,26 +222,25 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.link,
-                          size: UIConfig.iconSizeSmall,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          AppIcons.link,
+                          size: iconSize.small,
+                          color: colors.textSecondary,
                         ),
-                        SizedBox(width: UIConfig.spacingSmall),
+                        SizedBox(width: spacing.small),
                         Expanded(
                           child: Text(
                             'http://${_hostController.text.isEmpty ? "host" : _hostController.text}'
                             ':${_portController.text.isEmpty ? "port" : _portController.text}',
-                            style: TextStyle(
-                              fontSize: UIConfig.fontSizeSmall,
-                              fontFamily: 'monospace',
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: typography.bodySmall.copyWith(
+                              fontFamily: FontFamily.monospace,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: UIConfig.spacingLarge),
+                  SizedBox(height: spacing.large),
 
                   // Test Connection Button
                   SizedBox(
@@ -258,62 +249,62 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
                       onPressed: _isTesting ? null : _testConnection,
                       icon: _isTesting
                           ? SizedBox(
-                              width: UIConfig.iconSizeSmall,
-                              height: UIConfig.iconSizeSmall,
-                              child: const CircularProgressIndicator(strokeWidth: 2),
+                              width: iconSize.small,
+                              height: iconSize.small,
+                              child: const CircularProgressIndicator(strokeWidth: BorderSize.medium),
                             )
-                          : const Icon(Icons.network_ping),
+                          : const Icon(AppIcons.wifi),
                       label: Text(_isTesting ? 'Testing...' : 'Test Connection'),
                       style: ElevatedButton.styleFrom(
-                        padding: UIConfig.paddingAllMedium,
+                        padding: spacing.all(Spacing.medium),
                       ),
                     ),
                   ),
 
                   // Connection status
                   if (_statusMessage != null) ...[
-                    SizedBox(height: UIConfig.spacingMedium),
+                    SizedBox(height: spacing.medium),
                     Container(
-                      padding: UIConfig.paddingAllMedium,
+                      padding: spacing.all(Spacing.medium),
                       decoration: BoxDecoration(
                         color: _connectionStatus == null
                             ? Theme.of(context).colorScheme.surfaceContainerHighest
                             : _connectionStatus!
-                                ? UIConfig.colorSuccess.withValues(alpha: 0.1)
-                                : UIConfig.colorError.withValues(alpha: 0.1),
-                        borderRadius: UIConfig.radiusMedium,
+                                ? AppColors.success.withValues(alpha: AppOpacity.subtle)
+                                : AppColors.error.withValues(alpha: AppOpacity.subtle),
+                        borderRadius: dimensions.borderRadiusMedium,
                         border: Border.all(
                           color: _connectionStatus == null
                               ? Theme.of(context).colorScheme.outline
                               : _connectionStatus!
-                                  ? UIConfig.colorSuccess
-                                  : UIConfig.colorError,
+                                  ? AppColors.success
+                                  : AppColors.error,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             _connectionStatus == null
-                                ? Icons.info_outline
+                                ? AppIcons.infoOutlined
                                 : _connectionStatus!
-                                    ? Icons.check_circle_outline
-                                    : Icons.error_outline,
+                                    ? AppIcons.checkCircleOutlined
+                                    : AppIcons.errorOutlined,
                             color: _connectionStatus == null
-                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                ? colors.textSecondary
                                 : _connectionStatus!
-                                    ? UIConfig.colorSuccess
-                                    : UIConfig.colorError,
+                                    ? AppColors.success
+                                    : AppColors.error,
                           ),
-                          SizedBox(width: UIConfig.spacingSmall),
+                          SizedBox(width: spacing.small),
                           Expanded(
                             child: Text(
                               _statusMessage!,
-                              style: TextStyle(
+                              style: typography.bodyMedium.copyWith(
                                 color: _connectionStatus == null
-                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    ? colors.textSecondary
                                     : _connectionStatus!
-                                        ? UIConfig.colorSuccess
-                                        : UIConfig.colorError,
+                                        ? AppColors.success
+                                        : AppColors.error,
                               ),
                             ),
                           ),
@@ -326,7 +317,7 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
             ),
           ),
 
-          SizedBox(height: UIConfig.spacingLarge),
+          SizedBox(height: spacing.large),
 
           // Action Buttons
           Row(
@@ -334,61 +325,61 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _resetToDefaults,
-                  icon: const Icon(Icons.restore),
-                  label: const Text('Reset'),
+                  icon: const Icon(AppIcons.restore),
+                  label: const Text(AppStrings.settingsReset),
                   style: OutlinedButton.styleFrom(
-                    padding: UIConfig.paddingAllMedium,
+                    padding: spacing.all(Spacing.medium),
                   ),
                 ),
               ),
-              SizedBox(width: UIConfig.spacingMedium),
+              SizedBox(width: spacing.medium),
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
                   onPressed: _saveConfiguration,
-                  icon: const Icon(Icons.save),
+                  icon: const Icon(AppIcons.save),
                   label: const Text('Save Configuration'),
                   style: ElevatedButton.styleFrom(
-                    padding: UIConfig.paddingAllMedium,
+                    padding: spacing.all(Spacing.medium),
                   ),
                 ),
               ),
             ],
           ),
 
-          SizedBox(height: UIConfig.spacingXLarge),
+          SizedBox(height: spacing.xlarge),
 
           // Info section
           Card(
             child: Padding(
-              padding: UIConfig.paddingAllLarge,
+              padding: spacing.all(Spacing.large),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
+                        AppIcons.infoOutlined,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      SizedBox(width: UIConfig.spacingSmall),
+                      SizedBox(width: spacing.small),
                       Text(
                         'Connection Tips',
-                        style: UIConfig.textStyleSubtitle.copyWith(
-                          fontWeight: UIConfig.fontWeightBold,
+                        style: typography.titleMedium.copyWith(
+                          fontWeight: FontWeightStyle.bold,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: UIConfig.spacingMedium),
+                  SizedBox(height: spacing.medium),
                   Text(
                     '• Make sure your Flask server is running\n'
                     '• Use localhost or 127.0.0.1 if server is on the same device\n'
                     '• Use your computer\'s local IP (e.g., 192.168.x.x) for same network\n'
                     '• Default Flask port is 5000\n'
                     '• Test connection before saving',
-                    style: UIConfig.textStyleBody.copyWith(
-                      color: UIConfig.colorGrey600,
+                    style: typography.bodyMedium.copyWith(
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],

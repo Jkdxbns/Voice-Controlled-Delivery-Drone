@@ -43,7 +43,8 @@ class HealthApiService {
   Future<CatalogResponse?> getCatalog() async {
     try {
       final url = Uri.parse('$baseUrl${ApiEndpoints.catalog}');
-      final response = await http.get(url).timeout(
+      final headers = await ApiHeaders.getHeaders();
+      final response = await http.get(url, headers: headers).timeout(
         AppConstants.apiTimeoutMedium,
       );
 
@@ -71,9 +72,10 @@ class HealthApiService {
   Future<String?> echo(String text) async {
     try {
       final url = Uri.parse('$baseUrl${ApiEndpoints.echo}');
+      final headers = await ApiHeaders.getJsonHeaders();
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'text': text}),
       ).timeout(AppConstants.apiTimeoutShort);
 

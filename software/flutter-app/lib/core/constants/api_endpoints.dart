@@ -13,9 +13,15 @@ class ApiEndpoints {
   static const String registerDevice = '/device/register';
   static const String deviceList = '/device/list';
 
-  // Processing
-  static const String process = '/process';
-  static const String generate = '/generate';
+  // AI Processing (STT + LM combined)
+  static const String process = '/ai/process';
+  
+  // Language Model (LM)
+  static const String generate = '/lm/generate';
+  static const String query = '/lm/query';
+  
+  // Speech-to-Text (STT)
+  static const String transcribe = '/stt/transcribe';
 
   // Testing
   static const String echo = '/echo';
@@ -23,7 +29,6 @@ class ApiEndpoints {
   // Legacy/Compatibility (if needed)
   static const String chat = '/chat';
   static const String streamChat = '/stream_chat';
-  static const String transcribe = '/transcribe';
   static const String transcribeStream = '/transcribe_stream';
   static const String uploadAudio = '/upload_audio';
   static const String processAudio = '/process_audio';

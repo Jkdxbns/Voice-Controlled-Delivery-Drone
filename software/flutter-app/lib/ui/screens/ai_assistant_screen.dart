@@ -5,7 +5,7 @@ import '../../services/tts_service.dart';
 import '../../services/permissions/permission_service.dart';
 import '../../services/server/server_config_service.dart';
 import '../widgets/ai_assistant/widgets.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 import '../../core/constants/app_constants.dart';
 import 'ai_assistant/ai_assistant_controller.dart';
 
@@ -155,6 +155,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -178,16 +181,16 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             // Chat messages
             Expanded(
               child: Container(
-                margin: UIConfig.paddingAllSmall,
+                margin: spacing.all(Spacing.small),
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Theme.of(context)
                         .colorScheme
                         .outline
-                        .withValues(alpha: UIConfig.opacityBorder),
-                    width: UIConfig.borderWidthThin,
+                        .withValues(alpha: AppOpacity.border),
+                    width: BorderSize.thin,
                   ),
-                  borderRadius: UIConfig.radiusLarge,
+                  borderRadius: dimensions.borderRadiusLarge,
                 ),
                 child: ChatMessageList(
                   messages: _controller.messages,

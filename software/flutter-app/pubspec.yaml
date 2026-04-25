@@ -1,5 +1,5 @@
-name: coffin_v6
-description: "COFFIN v6 - Voice AI Assistant with Bluetooth Integration"
+name: coffin
+description: "COFFIN - Voice AI Assistant with Bluetooth Integration"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 9.0.0+9
 
 environment:
   sdk: ^3.9.2
@@ -49,6 +49,9 @@ dependencies:
   # Text-to-Speech
   flutter_tts: ^4.2.0  # Updated to latest
   
+  # WebSocket for real-time communication
+  socket_io_client: ^2.0.3+1
+  
   # Device information
   device_info_plus: ^10.1.0
   network_info_plus: ^5.0.0
@@ -61,6 +64,18 @@ dependencies:
   
   # Bluetooth Low Energy (BLE) - for HM-10
   flutter_reactive_ble: ^5.3.1
+  
+  # Background service for keeping connections alive
+  flutter_background_service: ^5.0.5
+  flutter_local_notifications: ^18.0.1
+
+  # System apps (alarms, calendar, calls)
+  android_intent_plus: ^5.2.0
+  url_launcher: ^6.3.0
+
+  # File transfer utilities
+  crypto: ^3.0.6
+  mime: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 
 /// UI helper functions for dialogs, popups, and alerts
 class UiHelpers {
@@ -13,7 +13,7 @@ class UiHelpers {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: const Text(AppStrings.actionOk),
           ),
         ],
       ),
@@ -25,8 +25,8 @@ class UiHelpers {
     required BuildContext context,
     required String title,
     required String message,
-    String confirmText = 'OK',
-    String cancelText = 'CANCEL',
+    String confirmText = AppStrings.actionOk,
+    String cancelText = AppStrings.actionCancel,
     Color? confirmColor,
   }) {
     return showDialog<bool>(
@@ -60,42 +60,49 @@ class UiHelpers {
     Duration duration = const Duration(seconds: 2),
   }) {
     final overlay = Overlay.of(context);
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 120,
+        bottom: ComponentSize.bottomSheetHandleHeight * 3,
         left: 0,
         right: 0,
         child: Center(
           child: Material(
-            color: Colors.transparent,
+            color: AppColors.transparent,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: UIConfig.spacingLarge * 1.25, vertical: UIConfig.spacingMedium),
-              margin: EdgeInsets.symmetric(horizontal: UIConfig.spacingLarge * 3.75),
+              padding: EdgeInsets.symmetric(
+                horizontal: spacing.large,
+                vertical: spacing.medium,
+              ),
+              margin: EdgeInsets.symmetric(horizontal: spacing.xlarge * 2),
               decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: UIConfig.radiusMedium,
+                color: AppColors.black.withValues(alpha: AppOpacity.high),
+                borderRadius: dimensions.borderRadiusMedium,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    spreadRadius: 2,
+                    color: AppColors.black.withValues(alpha: AppOpacity.medium),
+                    blurRadius: Spacing.medium,
+                    spreadRadius: Spacing.xxsmall,
                   ),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: iconColor, size: UIConfig.iconSizeSmall * 1.1),
-                  SizedBox(width: UIConfig.spacingMedium),
+                  Icon(icon, color: iconColor, size: iconSize.medium),
+                  SizedBox(width: spacing.small),
                   Flexible(
                     child: Text(
                       message,
-                      style: TextStyle(
-                        color: UIConfig.colorWhite,
-                        fontSize: UIConfig.fontSizeMedium,
-                        fontWeight: UIConfig.fontWeightMedium,
+                      style: typography.bodyMedium.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeightStyle.medium,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -125,7 +132,7 @@ class UiHelpers {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Chat'),
+        title: const Text(AppStrings.historyRenameTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -138,7 +145,7 @@ class UiHelpers {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('CANCEL'),
+            child: const Text(AppStrings.actionCancel),
           ),
           TextButton(
             onPressed: () {
@@ -147,7 +154,7 @@ class UiHelpers {
                 Navigator.of(context).pop(newTitle);
               }
             },
-            child: const Text('SAVE'),
+            child: const Text(AppStrings.actionSave),
           ),
         ],
       ),

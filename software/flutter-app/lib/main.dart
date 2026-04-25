@@ -11,33 +11,34 @@ import 'ui/screens/bluetooth/unified_scanner_screen.dart';
 import 'ui/screens/bluetooth/unified_terminal_screen.dart';
 import 'ui/screens/bluetooth/bluetooth_settings_screen.dart';
 import 'ui/screens/bluetooth/bluetooth_controller_screen.dart';
-import 'config/ui_config.dart';
+import 'constants/constants.dart';
 import 'config/app_config.dart';
 import 'services/preferences_service.dart';
-import 'services/tts_service.dart';
-import 'services/background_initializer.dart';
-import 'services/permissions/permission_service.dart';
 import 'services/permissions/permission_manager.dart';
-import 'services/server/server_config_service.dart';
-import 'services/device/device_info_service.dart';
-import 'services/api/device_registration_api_service.dart';
-import 'services/ble/ble_service.dart';
-import 'services/heartbeat_service.dart';
+import 'services/app_initialization_service.dart';
+import 'services/websocket_service.dart';
+import 'services/background_service_manager.dart';
 import 'utils/app_logger.dart';
+import 'utils/battery_optimization_helper.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize background service manager early
+  await BackgroundServiceManager.instance.initialize();
+  
   runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late ThemeMode _themeMode;
   bool _isInitialized = false;
 
@@ -45,145 +46,92 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _themeMode = ThemeMode.light;
+    // Register lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
     // All heavy work (config loading, SharedPreferences) runs in background isolate
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
   }
 
-  Future<void> _initializeApp() async {
-    try {
-      // Run initialization in background isolate using compute
-      final result = await BackgroundInitializer.initialize();
-      
-      if (!mounted) return;
-      
-      if (result.success && result.configJson != null) {
-        // Parse and set AppConfig on main thread (lightweight operation)
-        final configJson = jsonDecode(result.configJson!) as Map<String, dynamic>;
-        AppConfig.initializeFromJson(configJson);
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came back to foreground
+        AppLogger.info('[LIFECYCLE] App resumed - stopping background service');
+        BackgroundServiceManager.instance.stopService();
+        WebSocketService.instance.ensureConnected();
+        break;
         
-        // Initialize PreferencesService (already initialized in background)
-        await PreferencesService.init();
+      case AppLifecycleState.paused:
+        // App going to background
+        AppLogger.info('[LIFECYCLE] App paused - starting background service');
+        BackgroundServiceManager.instance.startService();
+        BackgroundServiceManager.instance.updateNotification(
+          title: 'COFFIN',
+          content: 'Maintaining connection in background...',
+        );
+        break;
         
-        // Initialize permission service
-        await PermissionService.instance.initialize();
-        
-        // Initialize server config service
-        await ServerConfigService.instance.init();
-        
-        // Initialize TTS service
-        await TtsService.instance.initialize();
-        
-        AppLogger.info('Requesting startup permissions...');
-        
-        // Request permissions with professional dialogs
-        if (mounted) {
-          await PermissionManager.instance.requestStartupPermissions(context);
-          AppLogger.success('Permission request flow completed');
-        }
-        
-        // Initialize device info service
-        await DeviceInfoService.instance.initialize();
-        
-        // Initialize BLE service and restore existing connections
-        AppLogger.info('Initializing BLE service...');
-        await BleService.instance.initialize();
-        AppLogger.success('BLE service initialized');
-        
-        // Register device with server
-        if (mounted) {
-          await _registerDevice();
-        }
-        
-        // Start heartbeat service to maintain online status
-        if (mounted) {
-          AppLogger.info('Starting heartbeat service...');
-          HeartbeatService.instance.start();
-          AppLogger.success('Heartbeat service started');
-        }
-        
-        if (mounted) {
-          setState(() {
-            _themeMode = result.isDarkMode ? ThemeMode.dark : ThemeMode.light;
-            _isInitialized = true;
-          });
-        }
-      } else {
-        // Handle initialization error
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-      }
-    } catch (e) {
-      AppLogger.error('Initialization error: $e');
-      // Handle initialization error
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
     }
   }
 
-  /// Register device with server
-  Future<void> _registerDevice() async {
+  Future<void> _initializeApp() async {
     try {
-      AppLogger.info('═══════════════════════════════════════════════════════');
-      AppLogger.info('[DEVICE REGISTRATION] Getting device info...');
-      
-      final deviceInfo = await DeviceInfoService.instance.getDeviceInfo();
-      
-      AppLogger.info('[DEVICE REGISTRATION] Device Info:');
-      AppLogger.info('  device_id: ${deviceInfo.deviceId}');
-      AppLogger.info('  device_name: ${deviceInfo.deviceName}');
-      AppLogger.info('  model_name: ${deviceInfo.modelName}');
-      AppLogger.info('  mac_address: ${deviceInfo.macAddress ?? "NULL"}');
-      
-      // Check if MAC address is available
-      if (deviceInfo.macAddress == null || deviceInfo.macAddress!.isEmpty) {
-        AppLogger.error('⚠️ No MAC address available - device may not persist in registry');
-        AppLogger.error('Device will use UUID fallback: ${deviceInfo.deviceId}');
-      } else {
-        AppLogger.success('✅ MAC address available: ${deviceInfo.macAddress}');
+      // Load config from assets (main thread - isolates can't use rootBundle reliably)
+      try {
+        final configString = await DefaultAssetBundle.of(context).loadString('assets/config.json');
+        final configJson = jsonDecode(configString) as Map<String, dynamic>;
+        AppConfig.initializeFromJson(configJson);
+        AppLogger.success('Config loaded from assets');
+      } catch (e) {
+        AppLogger.warning('Config loading failed, using defaults: $e');
       }
-      
-      final registrationService = DeviceRegistrationApiService(
-        baseUrl: ServerConfigService.instance.baseUrl,
-      );
-      
-      // Try registration with retry logic
-      bool success = false;
-      int attempts = 0;
-      const maxAttempts = 3;
-      
-      while (!success && attempts < maxAttempts) {
-        attempts++;
-        success = await registrationService.registerDevice(deviceInfo);
-        
-        if (!success && attempts < maxAttempts) {
-          AppLogger.warning('Device registration attempt $attempts failed, retrying...');
-          await Future.delayed(Duration(seconds: 2 * attempts)); // Exponential backoff
-        }
-      }
-      
-      if (success) {
-        AppLogger.success('✓ Device registered: ${deviceInfo.deviceName}');
-        if (deviceInfo.macAddress != null) {
-          AppLogger.success('  └─ MAC: ${deviceInfo.macAddress}');
-        }
-      } else {
-        AppLogger.error('✗ Device registration failed after $maxAttempts attempts');
-        AppLogger.error('  └─ Device: ${deviceInfo.deviceName}');
-        AppLogger.error('  └─ Server may be offline, or check DeviceInfoService.getMacAddress()');
-        AppLogger.showToast('Device registration failed - check server connection', isError: true);
+
+      if (!mounted) return;
+
+      // Use centralized initialization service
+      // This handles device registration via WebSocket
+      await AppInitializationService.instance.initialize();
+
+      if (mounted) {
+        // Get theme from PreferencesService
+        final isDarkMode = PreferencesService.instance.isDarkMode;
+        setState(() {
+          _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+          _isInitialized = true;
+        });
       }
     } catch (e) {
-      AppLogger.error('Device registration error: $e');
-      // Non-critical error - app can continue without registration
-      // The heartbeat service will retry registration automatically
+      AppLogger.error('Initialization error: $e');
+      
+      // Fallback: try minimal initialization
+      try {
+        await PreferencesService.init();
+      } catch (_) {}
+
+      if (mounted) {
+        final isDarkMode = PreferencesService.isInitialized
+            ? PreferencesService.instance.isDarkMode
+            : false;
+        setState(() {
+          _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+          _isInitialized = true;
+        });
+      }
     }
   }
 
@@ -198,36 +146,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       scaffoldMessengerKey: AppLogger.scaffoldMessengerKey,
-      title: 'Audio Recorder',
+      title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1565C0),
-          brightness: Brightness.dark,
-        ).copyWith(
-          primary: const Color(0xFF1565C0),
-          secondary: const Color(0xFF0D47A1),
-          surface: const Color(0xFF0A1929),
-          primaryContainer: const Color(0xFF1E3A5F),
-          secondaryContainer: const Color(0xFF0D2844),
-          surfaceContainerHighest: const Color(0xFF1E3A5F),
-        ),
-        scaffoldBackgroundColor: const Color(0xFF0A1929),
-        cardColor: const Color(0xFF1E3A5F),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       themeMode: _themeMode,
-      home: _isInitialized 
-        ? const MainScreen() 
-        : const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
+      home: _isInitialized
+          ? const MainScreen()
+          : const Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 }
@@ -242,9 +168,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0; // Default to Home
   int? _currentConversationId;
-  final GlobalKey<ChatHistoryScreenState> _chatHistoryKey = GlobalKey<ChatHistoryScreenState>();
-  final GlobalKey<State<UnifiedTerminalScreen>> _terminalKey = GlobalKey<State<UnifiedTerminalScreen>>();
-  
+  final GlobalKey<ChatHistoryScreenState> _chatHistoryKey =
+      GlobalKey<ChatHistoryScreenState>();
+  final GlobalKey<State<UnifiedTerminalScreen>> _terminalKey =
+      GlobalKey<State<UnifiedTerminalScreen>>();
+  final GlobalKey<State<DeviceLookupScreen>> _deviceLookupKey =
+      GlobalKey<State<DeviceLookupScreen>>();
+  final GlobalKey<BluetoothControllerScreenState> _controllerKey =
+      GlobalKey<BluetoothControllerScreenState>();
+
   // Keep screen instances alive
   late final List<Widget> _screens;
   Widget? _aiAssistantScreen;
@@ -253,6 +185,66 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _initializeScreens();
+    
+    // Request startup permissions and battery optimization after first frame
+    // MainScreen is inside MaterialApp so MaterialLocalizations are available
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        // Request permissions first
+        AppLogger.info('Requesting startup permissions...');
+        await PermissionManager.instance.requestStartupPermissions(context);
+        AppLogger.success('Permission request flow completed');
+        
+        // Then request battery optimization
+        if (mounted) {
+          await _requestBatteryOptimization();
+        }
+      }
+    });
+  }
+  
+  /// Request battery optimization exemption for reliable background operation
+  Future<void> _requestBatteryOptimization() async {
+    try {
+      final isExempt = await BatteryOptimizationHelper.isIgnoringBatteryOptimizations();
+      
+      if (!isExempt) {
+        AppLogger.info('[BATTERY] Requesting battery optimization exemption...');
+        
+        // Show explanation dialog first
+        if (mounted) {
+          final shouldRequest = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Background Connection'),
+              content: const Text(
+                'COFFIN needs to run in the background to receive commands from other devices.\n\n'
+                'Please allow "Unrestricted" battery usage in the next screen to ensure reliable operation.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Later'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Allow'),
+                ),
+              ],
+            ),
+          );
+          
+          if (shouldRequest == true) {
+            await BatteryOptimizationHelper.requestDisableBatteryOptimization();
+            AppLogger.success('[BATTERY] Battery optimization exemption requested');
+          }
+        }
+      } else {
+        AppLogger.info('[BATTERY] Already exempt from battery optimization');
+      }
+    } catch (e) {
+      AppLogger.error('[BATTERY] Error requesting exemption: $e');
+    }
   }
 
   void _initializeScreens() {
@@ -261,31 +253,34 @@ class _MainScreenState extends State<MainScreen> {
       conversationId: _currentConversationId,
       onCreateConversation: _onCreateConversation,
     );
-    
+
     _screens = [
-      HomeScreen(onNavigate: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-      }),
-      _aiAssistantScreen!, // AI Assistant (kept alive)
-      ChatHistoryScreen(
-        key: _chatHistoryKey,
-        onChatSelected: _onChatSelected,
+      HomeScreen(
+        onNavigate: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
+      _aiAssistantScreen!, // AI Assistant (kept alive)
+      ChatHistoryScreen(key: _chatHistoryKey, onChatSelected: _onChatSelected),
       const ModelSelectionScreen(),
       const ServerSettingsScreen(),
-      const DeviceLookupScreen(),
+      DeviceLookupScreen(key: _deviceLookupKey),
       SettingsScreen(
         onThemeChanged: (useDarkMode) {
           final myAppState = context.findAncestorStateOfType<_MyAppState>();
           myAppState?._changeTheme(useDarkMode);
         },
       ),
-      const UnifiedScannerScreen(),        // Index 7: Unified Bluetooth Scanner
-      UnifiedTerminalScreen(key: _terminalKey),       // Index 8: Unified Bluetooth Terminal
-      const BluetoothSettingsScreen(),     // Index 9: Bluetooth Settings
-      const BluetoothControllerScreen(),   // Index 10: Bluetooth Controller
+      const UnifiedScannerScreen(), // Index 7: Unified Bluetooth Scanner
+      UnifiedTerminalScreen(
+        key: _terminalKey,
+      ), // Index 8: Unified Bluetooth Terminal
+      const BluetoothSettingsScreen(), // Index 9: Bluetooth Settings
+      BluetoothControllerScreen(
+        key: _controllerKey,
+      ), // Index 10: Bluetooth Controller
     ];
   }
 
@@ -308,7 +303,10 @@ class _MainScreenState extends State<MainScreen> {
       );
       _screens[1] = _aiAssistantScreen!;
     });
-    Navigator.of(context).pop();
+    // Only pop if the drawer is open (check if we can pop safely)
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _onCreateConversation(String title) {
@@ -335,27 +333,27 @@ class _MainScreenState extends State<MainScreen> {
   String _getTitle() {
     switch (_selectedIndex) {
       case 1:
-        return UIConfig.textAiAssistant;
+        return AppStrings.navAiAssistant;
       case 2:
-        return UIConfig.textChatHistory;
+        return AppStrings.navChatHistory;
       case 3:
-        return UIConfig.textModelSelection;
+        return AppStrings.navModelSelection;
       case 4:
-        return 'Server Configuration';
+        return AppStrings.navServerConfig;
       case 5:
-        return 'Device Lookup';
+        return AppStrings.navDeviceLookup;
       case 6:
-        return 'App Settings';
+        return AppStrings.navAppSettings;
       case 7:
-        return 'Bluetooth Scanner';
+        return AppStrings.navScanner;
       case 8:
-        return 'Bluetooth Terminal';
+        return AppStrings.navTerminal;
       case 9:
         return 'Bluetooth Settings';
       case 10:
-        return 'Bluetooth Controller';
+        return AppStrings.navController;
       default:
-        return UIConfig.textHome;
+        return AppStrings.navHome;
     }
   }
 
@@ -364,15 +362,20 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         return [
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: EdgeInsets.only(right: Spacing.small),
             child: ElevatedButton.icon(
               onPressed: _createNewChat,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(UIConfig.textNewChatButton),
+              icon: Icon(AppIcons.add, size: IconSize.small),
+              label: Text(AppStrings.actionNewChat),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimaryContainer,
+                padding: EdgeInsets.symmetric(
+                  horizontal: Spacing.large,
+                  vertical: Spacing.medium,
+                ),
               ),
             ),
           ),
@@ -380,10 +383,10 @@ class _MainScreenState extends State<MainScreen> {
       case 2:
         return [
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: EdgeInsets.only(right: Spacing.small),
             child: IconButton(
-              icon: const Icon(Icons.delete_sweep),
-              tooltip: UIConfig.textClearAllChats,
+              icon: Icon(AppIcons.deleteSweep),
+              tooltip: AppStrings.actionClearAll,
               onPressed: _clearAllChats,
             ),
           ),
@@ -394,11 +397,24 @@ class _MainScreenState extends State<MainScreen> {
       case 4:
         // Server Settings screen - No action button needed
         return null;
+      case 5:
+        // Device Lookup screen - Refresh action
+        return [
+          IconButton(
+            icon: Icon(AppIcons.refresh),
+            tooltip: AppStrings.actionRefresh,
+            onPressed: () {
+              final deviceLookupState =
+                  _deviceLookupKey.currentState as dynamic;
+              deviceLookupState?.loadDevices();
+            },
+          ),
+        ];
       case 8:
         // Bluetooth Terminal screen - Refresh and Clear actions
         return [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(AppIcons.refresh),
             tooltip: 'Refresh devices',
             onPressed: () {
               final terminalState = _terminalKey.currentState as dynamic;
@@ -406,7 +422,7 @@ class _MainScreenState extends State<MainScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
+            icon: Icon(AppIcons.deleteSweep),
             tooltip: 'Clear messages',
             onPressed: () {
               final terminalState = _terminalKey.currentState as dynamic;
@@ -415,20 +431,49 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ];
       case 10:
-        // Bluetooth Controller screen - Save action (pressable; implementation later)
+        // Bluetooth Controller screen - Load and Save As actions
         return [
+          // Load button
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: EdgeInsets.only(right: Spacing.small),
             child: ElevatedButton.icon(
               onPressed: () {
-                // TODO: Implement save behavior for Controller screen
+                _controllerKey.currentState?.showLoadDialog();
               },
-              icon: const Icon(UIConfig.iconSave, size: 18),
-              label: const Text(UIConfig.textSave),
+              icon: Icon(Icons.folder_open, size: IconSize.small),
+              label: const Text('Load'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.secondaryContainer,
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onSecondaryContainer,
+                padding: EdgeInsets.symmetric(
+                  horizontal: Spacing.medium,
+                  vertical: Spacing.medium,
+                ),
+              ),
+            ),
+          ),
+          // Save As button
+          Padding(
+            padding: EdgeInsets.only(right: Spacing.small),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _controllerKey.currentState?.showSaveAsDialog();
+              },
+              icon: Icon(AppIcons.save, size: IconSize.small),
+              label: const Text('Save As'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimaryContainer,
+                padding: EdgeInsets.symmetric(
+                  horizontal: Spacing.medium,
+                  vertical: Spacing.medium,
+                ),
               ),
             ),
           ),
@@ -442,12 +487,13 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: context.dimensions.appBarHeight,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(_getTitle()),
         actions: _buildAppBarActions(),
       ),
       drawer: Drawer(
-        width: UIConfig.drawerWidth,
+        width: context.dimensions.drawerWidth,
         child: ListView(
           primary: false,
           padding: EdgeInsets.zero,
@@ -460,34 +506,46 @@ class _MainScreenState extends State<MainScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(UIConfig.iconApp, size: UIConfig.iconSizeLarge, color: UIConfig.colorWhite),
-                  SizedBox(height: UIConfig.spacingSmall),
+                  Icon(
+                    AppIcons.app,
+                    size: IconSize.xxlarge,
+                    color: AppColors.white,
+                  ),
+                  SizedBox(height: Spacing.small),
                   Text(
-                    UIConfig.textVoiceAssistant,
-                    style: UIConfig.textStyleHeader,
+                    AppStrings.aiTitle,
+                    style: AppTextStyle.headingLarge.copyWith(
+                      color: AppColors.white,
+                    ),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: Icon(UIConfig.iconHome),
-              title: Text(UIConfig.textHome),
+              leading: Icon(AppIcons.home),
+              title: Text(AppStrings.navHome),
               selected: _selectedIndex == 0,
               onTap: () => _onDrawerItemTapped(0),
             ),
             ExpansionTile(
-              leading: Icon(UIConfig.iconAI),
+              leading: Icon(AppIcons.ai),
               title: const Text('AI'),
               children: [
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(UIConfig.iconAI, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text(UIConfig.textAiAssistant, style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.ai, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navAiAssistant,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 1,
@@ -495,13 +553,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(UIConfig.iconChatHistory, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text(UIConfig.textChatHistory, style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.history, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navChatHistory,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 2,
@@ -509,13 +573,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(UIConfig.iconModel, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text(UIConfig.textModelSelection, style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.model, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navModelSelection,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 3,
@@ -524,19 +594,28 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             ExpansionTile(
-              leading: const Icon(Icons.bluetooth),
+              leading: Icon(AppIcons.bluetooth),
               title: const Text('Bluetooth'),
-              subtitle: const Text('Classic + BLE devices', style: TextStyle(fontSize: 11)),
+              subtitle: Text(
+                AppStrings.bluetoothClassicPlusBle,
+                style: TextStyle(fontSize: FontSize.xsmall),
+              ),
               children: [
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.bluetooth_searching, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Scanner', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.bluetoothSearching, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navScanner,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 7,
@@ -544,13 +623,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.terminal, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Terminal', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.terminal, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navTerminal,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 8,
@@ -558,13 +643,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.settings, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Settings', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.settings, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navSettings,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 9,
@@ -572,13 +663,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.gamepad, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Controller', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(Icons.gamepad, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navController,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 10,
@@ -587,18 +684,24 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             ExpansionTile(
-              leading: Icon(UIConfig.iconSettings),
-              title: Text(UIConfig.textSettings),
+              leading: Icon(AppIcons.settings),
+              title: Text(AppStrings.navSettings),
               children: [
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.dns, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Server Configuration', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.server, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navServerConfig,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 4,
@@ -606,13 +709,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.devices, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('Device Lookup', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.device, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navDeviceLookup,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 5,
@@ -620,13 +729,19 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 ListTile(
                   dense: true,
-                  visualDensity: UIConfig.drawerNestedDensity,
-                  contentPadding: UIConfig.paddingDrawerNested,
+                  visualDensity: const VisualDensity(vertical: -1),
+                  contentPadding: EdgeInsets.only(
+                    left: Spacing.xxxlarge,
+                    right: Spacing.large,
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.tune, size: UIConfig.iconSizeSmall),
-                      SizedBox(width: UIConfig.spacingSmall),
-                      Text('App Settings', style: TextStyle(fontSize: UIConfig.fontSizeMedium)),
+                      Icon(AppIcons.tune, size: IconSize.small),
+                      SizedBox(width: Spacing.small),
+                      Text(
+                        AppStrings.navAppSettings,
+                        style: TextStyle(fontSize: FontSize.medium),
+                      ),
                     ],
                   ),
                   selected: _selectedIndex == 6,
@@ -637,10 +752,7 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
     );
   }
 }

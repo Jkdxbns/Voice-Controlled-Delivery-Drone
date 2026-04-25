@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import '../../../models/bluetooth_settings.dart';
 import '../../../models/unified_bluetooth_device.dart';
 import '../../../services/bluetooth/unified_bluetooth_service.dart';
@@ -33,7 +35,8 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Ensure service is initialized
+      // Service is already initialized by AppInitializationService
+      // (initialize() is idempotent so this is safe)
       await _settingsService.initialize();
       
       // Load saved devices
@@ -137,6 +140,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
           Expanded(
             child: Scrollbar(
               child: ListView(
+                primary: false,
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildConnectionSettings(),
@@ -170,11 +174,11 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
       color: Colors.blue.withValues(alpha: 0.1),
       child: Row(
         children: [
-          const Icon(Icons.settings, color: Colors.blue, size: 18),
+          const Icon(Icons.settings, color: Colors.blue, size: ComponentSize.iconSmall),
           const SizedBox(width: 6),
           const Text(
             'Apply To:',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: FontSize.small),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -188,7 +192,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
               items: [
                 const DropdownMenuItem(
                   value: 'Global',
-                  child: Text('🌐 Global (All Devices)', style: TextStyle(fontSize: 12)),
+                  child: Text('🌐 Global (All Devices)', style: TextStyle(fontSize: FontSize.small)),
                 ),
                 ..._savedDevices.map((device) {
                   return DropdownMenuItem(
@@ -196,7 +200,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
                     child: Text(
                       '${device.typeBadge} ${device.displayName}',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: FontSize.small),
                     ),
                   );
                 }),
@@ -221,12 +225,12 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.blue),
+          Icon(icon, size: ComponentSize.iconSmall, color: Colors.blue),
           const SizedBox(width: 8),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: FontSize.large,
               fontWeight: FontWeight.bold,
               color: Colors.blue,
             ),
@@ -620,10 +624,10 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 14)),
+              Text(label, style: const TextStyle(fontSize: FontSize.medium)),
               Text(
                 '${value.toInt()} $unit',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue),
+                style: const TextStyle(fontSize: FontSize.medium, fontWeight: FontWeight.bold, color: Colors.blue),
               ),
             ],
           ),
@@ -652,7 +656,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
         children: [
           Expanded(
             flex: 2,
-            child: Text(label, style: const TextStyle(fontSize: 14)),
+            child: Text(label, style: const TextStyle(fontSize: FontSize.medium)),
           ),
           Expanded(
             flex: 3,
@@ -666,7 +670,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
               items: options.map((option) {
                 return DropdownMenuItem(
                   value: option,
-                  child: Text(labelBuilder(option), style: const TextStyle(fontSize: 13)),
+                  child: Text(labelBuilder(option), style: const TextStyle(fontSize: FontSize.smallPlus)),
                 );
               }).toList(),
               onChanged: onChanged,
@@ -688,7 +692,7 @@ class _BluetoothSettingsScreenState extends State<BluetoothSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(fontSize: FontSize.medium, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
           TextField(
             controller: TextEditingController(text: value),

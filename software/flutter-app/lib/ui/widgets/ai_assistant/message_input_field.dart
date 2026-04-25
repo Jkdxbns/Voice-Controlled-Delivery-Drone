@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 /// Message input field with send button
 class MessageInputField extends StatelessWidget {
@@ -18,10 +18,13 @@ class MessageInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: UIConfig.spacingMedium,
-        vertical: UIConfig.spacingSmall,
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.medium,
+        vertical: spacing.small,
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -30,8 +33,8 @@ class MessageInputField extends StatelessWidget {
             color: Theme.of(context)
                 .colorScheme
                 .outline
-                .withValues(alpha: UIConfig.opacityBorder),
-            width: UIConfig.borderWidthThin,
+                .withValues(alpha: AppOpacity.border),
+            width: BorderSize.thin,
           ),
         ),
       ),
@@ -44,28 +47,28 @@ class MessageInputField extends StatelessWidget {
               maxLines: 5,
               minLines: 1,
               decoration: InputDecoration(
-                hintText: UIConfig.textTypeMessage,
+                hintText: AppStrings.aiTypeMessage,
                 border: OutlineInputBorder(
                   borderRadius:
-                      BorderRadius.circular(UIConfig.borderRadiusLarge * 1.5),
+                      BorderRadius.circular(AppRadius.xlarge),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: UIConfig.spacingLarge,
-                  vertical: UIConfig.spacingMedium,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: spacing.medium,
+                  vertical: spacing.small,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: UIConfig.spacingSmall),
+          SizedBox(width: spacing.small),
           hasText
               ? IconButton(
                   onPressed: onSend,
-                  icon: Icon(UIConfig.iconSend),
-                  color: UIConfig.colorWhite,
+                  icon: Icon(AppIcons.send),
+                  color: AppColors.white,
                   style: IconButton.styleFrom(
-                    backgroundColor: UIConfig.colorInfo,
+                    backgroundColor: AppColors.info,
                     shape: const CircleBorder(),
-                    padding: UIConfig.paddingAllMedium,
+                    padding: spacing.all(Spacing.medium),
                   ),
                 )
               : trailingWidget,

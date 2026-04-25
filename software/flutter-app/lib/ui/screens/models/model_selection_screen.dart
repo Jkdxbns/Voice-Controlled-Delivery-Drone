@@ -4,7 +4,7 @@ import '../../../api/models/catalog_response.dart';
 import '../../../services/server/server_config_service.dart';
 import '../../../services/preferences_service.dart';
 import '../../../utils/app_logger.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 /// Model selection screen - Server models only
 /// Shows 2 dropdowns: STT models and LM models
@@ -83,7 +83,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
 
       if (catalog == null) {
         setState(() {
-          _errorMessage = UIConfig.errorServerUnavailable;
+          _errorMessage = AppStrings.errorServerUnavailable;
           _isLoading = false;
         });
         return;
@@ -122,7 +122,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Default STT model set to: $_selectedSttModel'),
-            backgroundColor: UIConfig.colorSuccess,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -146,7 +146,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Default LM model set to: $_selectedLmModel'),
-            backgroundColor: UIConfig.colorSuccess,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -177,28 +177,33 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
   }
 
   Widget _buildErrorView() {
+    final iconSize = context.iconSize;
+    final spacing = context.spacing;
+    final typography = context.typography;
+    final colors = AppColorScheme.of(context);
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.error_outline,
-            size: UIConfig.iconSizeLarge,
-            color: UIConfig.colorError,
+            AppIcons.errorOutlined,
+            size: iconSize.xxlarge,
+            color: colors.error,
           ),
-          SizedBox(height: UIConfig.spacingLarge),
+          SizedBox(height: spacing.large),
           Text(
             _errorMessage!,
-            style: UIConfig.textStyleSubtitle.copyWith(
-              color: UIConfig.colorError,
+            style: typography.titleMedium.copyWith(
+              color: colors.error,
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: UIConfig.spacingLarge),
+          SizedBox(height: spacing.large),
           ElevatedButton.icon(
             onPressed: _loadCatalog,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+            icon: const Icon(AppIcons.refresh),
+            label: const Text(AppStrings.actionRetry),
           ),
         ],
       ),
@@ -206,30 +211,18 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
   }
 
   Widget _buildContent() {
+    final spacing = context.spacing;
+    
     return RefreshIndicator(
       onRefresh: _loadCatalog,
       child: ListView(
         primary: false,
-        padding: UIConfig.paddingAllLarge,
+        padding: spacing.all(Spacing.large),
         children: [
-          // Header
-          Text(
-            UIConfig.textModelSelection,
-            style: UIConfig.textStyleHeader,
-          ),
-          SizedBox(height: UIConfig.spacingSmall),
-          Text(
-            'Select default models for speech recognition and text generation',
-            style: UIConfig.textStyleBody.copyWith(
-              color: UIConfig.colorGrey600,
-            ),
-          ),
-          SizedBox(height: UIConfig.spacingXLarge),
-
           // STT Models Section
           _buildSttModelSection(),
 
-          SizedBox(height: UIConfig.spacingXLarge),
+          SizedBox(height: spacing.xlarge),
 
           // LM Models Section
           _buildLmModelSection(),
@@ -239,50 +232,54 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
   }
 
   Widget _buildSttModelSection() {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    
     return Card(
-      elevation: 2,
+      elevation: AppElevation.small,
       child: Padding(
-        padding: UIConfig.paddingAllLarge,
+        padding: spacing.all(Spacing.large),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(
-                  Icons.mic,
+                  AppIcons.microphone,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                SizedBox(width: UIConfig.spacingSmall),
+                SizedBox(width: spacing.small),
                 Text(
                   'Speech-to-Text Models',
-                  style: UIConfig.textStyleSubtitle.copyWith(
-                    fontWeight: UIConfig.fontWeightBold,
+                  style: typography.titleMedium.copyWith(
+                    fontWeight: FontWeightStyle.bold,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Current default
             Container(
-              padding: UIConfig.paddingAllMedium,
+              padding: spacing.all(Spacing.medium),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: UIConfig.radiusMedium,
+                borderRadius: dimensions.borderRadiusMedium,
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.star,
-                    size: UIConfig.iconSizeSmall,
+                    AppIcons.star,
+                    size: iconSize.small,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
-                  SizedBox(width: UIConfig.spacingSmall),
+                  SizedBox(width: spacing.small),
                   Text(
                     'Current Default: $_defaultSttModel',
-                    style: TextStyle(
-                      fontSize: UIConfig.fontSizeMedium,
-                      fontWeight: UIConfig.fontWeightMedium,
+                    style: typography.bodyMedium.copyWith(
+                      fontWeight: FontWeightStyle.medium,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
@@ -290,7 +287,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
               ),
             ),
 
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Dropdown
             if (_sttModels.isEmpty)
@@ -320,7 +317,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
                 },
               ),
 
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Set Default Button
             SizedBox(
@@ -330,10 +327,10 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
                         _selectedSttModel != _defaultSttModel
                     ? _setDefaultSttModel
                     : null,
-                icon: const Icon(Icons.check),
+                icon: const Icon(AppIcons.check),
                 label: const Text('Set as Default'),
                 style: ElevatedButton.styleFrom(
-                  padding: UIConfig.paddingAllMedium,
+                  padding: spacing.all(Spacing.medium),
                 ),
               ),
             ),
@@ -344,50 +341,54 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
   }
 
   Widget _buildLmModelSection() {
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    
     return Card(
-      elevation: 2,
+      elevation: AppElevation.small,
       child: Padding(
-        padding: UIConfig.paddingAllLarge,
+        padding: spacing.all(Spacing.large),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(
-                  Icons.auto_awesome,
+                  AppIcons.ai,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                SizedBox(width: UIConfig.spacingSmall),
+                SizedBox(width: spacing.small),
                 Text(
                   'Language Models',
-                  style: UIConfig.textStyleSubtitle.copyWith(
-                    fontWeight: UIConfig.fontWeightBold,
+                  style: typography.titleMedium.copyWith(
+                    fontWeight: FontWeightStyle.bold,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Current default
             Container(
-              padding: UIConfig.paddingAllMedium,
+              padding: spacing.all(Spacing.medium),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: UIConfig.radiusMedium,
+                borderRadius: dimensions.borderRadiusMedium,
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.star,
-                    size: UIConfig.iconSizeSmall,
+                    AppIcons.star,
+                    size: iconSize.small,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
-                  SizedBox(width: UIConfig.spacingSmall),
+                  SizedBox(width: spacing.small),
                   Text(
                     'Current Default: $_defaultLmModel',
-                    style: TextStyle(
-                      fontSize: UIConfig.fontSizeMedium,
-                      fontWeight: UIConfig.fontWeightMedium,
+                    style: typography.bodyMedium.copyWith(
+                      fontWeight: FontWeightStyle.medium,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
@@ -395,7 +396,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
               ),
             ),
 
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Dropdown
             if (_lmModels.isEmpty)
@@ -425,7 +426,7 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
                 },
               ),
 
-            SizedBox(height: UIConfig.spacingMedium),
+            SizedBox(height: spacing.medium),
 
             // Set Default Button
             SizedBox(
@@ -435,10 +436,10 @@ class ModelSelectionScreenState extends State<ModelSelectionScreen> {
                         _selectedLmModel != _defaultLmModel
                     ? _setDefaultLmModel
                     : null,
-                icon: const Icon(Icons.check),
+                icon: const Icon(AppIcons.check),
                 label: const Text('Set as Default'),
                 style: ElevatedButton.styleFrom(
-                  padding: UIConfig.paddingAllMedium,
+                  padding: spacing.all(Spacing.medium),
                 ),
               ),
             ),

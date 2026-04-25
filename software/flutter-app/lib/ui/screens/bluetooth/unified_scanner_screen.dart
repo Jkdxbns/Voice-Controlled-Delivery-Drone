@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
+import '../../../constants/app_spacing.dart';
+import '../../../constants/app_icons.dart';
 import '../../../models/unified_bluetooth_device.dart';
 import '../../../services/bluetooth/unified_bluetooth_service.dart';
 import '../../../services/bluetooth/bluetooth_device_manager.dart';
@@ -32,7 +36,8 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
-    _initializeService();
+    // Service is already initialized by AppInitializationService
+    // Just set up listeners
     _listenToDiscovery();
     _listenToConnectionStates();
     _loadSavedDevices();
@@ -59,14 +64,6 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
     
     if (!hasConnectedDevices && !_isScanning) {
       _startScan();
-    }
-  }
-
-  Future<void> _initializeService() async {
-    try {
-      await _unifiedService.initialize();
-    } catch (e) {
-      AppLogger.error('Failed to initialize: $e');
     }
   }
 
@@ -123,18 +120,18 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
       
       final userChoice = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Row(
+        builder: (dialogContext) => AlertDialog(
+          title: Row(
             children: [
-              Icon(Icons.bluetooth_disabled, color: Colors.orange, size: 28),
-              SizedBox(width: 12),
-              Text('Bluetooth is Off'),
+              Icon(Icons.bluetooth_disabled, color: Colors.orange, size: dialogContext.dimensions.iconLarge),
+              const SizedBox(width: Spacing.medium),
+              const Text('Bluetooth is Off'),
             ],
           ),
           content: const Text(
             'Bluetooth is currently disabled.\n\n'
             'Would you like to enable it now to scan for devices?',
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: FontSize.medium),
           ),
           actions: [
             TextButton(
@@ -215,12 +212,12 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Text(device.typeBadge, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 8),
+            Text(device.typeBadge, style: const TextStyle(fontSize: FontSize.xxlarge)),
+            const SizedBox(width: Spacing.small),
             Expanded(
               child: Text(
                 device.displayName,
-                style: const TextStyle(fontSize: 18),
+                style: const TextStyle(fontSize: FontSize.xlarge),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -231,17 +228,17 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Type: ${device.typeLabel}'),
-            const SizedBox(height: 4),
-            Text('ID: ${device.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 4),
+            const SizedBox(height: Spacing.xsmall),
+            Text('ID: ${device.id}', style: const TextStyle(fontSize: FontSize.small, color: Colors.grey)),
+            const SizedBox(height: Spacing.xsmall),
             Text('RSSI: ${device.rssi} dBm'),
             if (isConnected)
               const Padding(
-                padding: EdgeInsets.only(top: 8),
+                padding: EdgeInsets.only(top: Spacing.small),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.green, size: 16),
-                    SizedBox(width: 4),
+                    Icon(Icons.check_circle, color: Colors.green, size: ComponentSize.iconXSmall),
+                    SizedBox(width: Spacing.xsmall),
                     Text('Connected', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -337,17 +334,38 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 0,
         backgroundColor: Colors.blue,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(10),
+          preferredSize: Size.fromHeight(context.dimensions.appBarHeight),
           child: TabBar(
             controller: _tabController,
-            labelPadding: const EdgeInsets.symmetric(vertical: 8),
-            tabs: const [
-              Tab(icon: Icon(Icons.search, size: 20), text: 'Scanner', height: 48),
-              Tab(icon: Icon(Icons.devices, size: 20), text: 'Paired Devices', height: 48),
-            ],
-          ),
+            labelPadding: const EdgeInsets.symmetric(horizontal: Spacing.large),
+            tabs: [
+            Tab(
+              height: ComponentSize.buttonMedium,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.search, size: IconSize.medium),
+                  const SizedBox(width: Spacing.small),
+                  const Text('Scanner', style: TextStyle(fontSize: FontSize.large)),
+                ],
+              ),
+            ),
+            Tab(
+              height: ComponentSize.buttonMedium,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.devices, size: IconSize.medium),
+                  const SizedBox(width: Spacing.small),
+                  const Text('Paired Devices', style: TextStyle(fontSize: FontSize.large)),
+                ],
+              ),
+            ),
+          ],
+        ),
         ),
       ),
       body: TabBarView(
@@ -365,15 +383,15 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
       children: [
         // Scan controls
         Container(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(Spacing.xsmall),
           color: Colors.green.withValues(alpha: 0.1),
           child: Row(
             children: [
-              const Icon(Icons.bluetooth_searching, color: Colors.green),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.bluetooth_searching, color: Colors.green, size: context.dimensions.iconLarge),
+              const SizedBox(width: Spacing.small),
+              Text(
                 'Scan for Devices',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: FontSize.xlarge, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               ElevatedButton.icon(
@@ -397,15 +415,15 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: Spacing.large),
                       Text(
                         'Scanning for Bluetooth devices...',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: FontSize.large, color: Colors.grey[600]),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: Spacing.small),
                       Text(
                         '🔵 Classic + 🟢 BLE',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: FontSize.medium, color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -415,16 +433,16 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey[400]),
-                          const SizedBox(height: 16),
+                          Icon(Icons.bluetooth_disabled, size: context.dimensions.iconXXLarge, color: Colors.grey[400]),
+                          const SizedBox(height: Spacing.large),
                           Text(
                             'No devices found',
-                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                            style: TextStyle(fontSize: FontSize.large, color: Colors.grey[600]),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: Spacing.small),
                           Text(
                             'Tap "Start Scan" to discover devices',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                            style: TextStyle(fontSize: FontSize.medium, color: Colors.grey[500]),
                           ),
                         ],
                       ),
@@ -447,15 +465,15 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
       children: [
         // Header
         Container(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(Spacing.xsmall),
           color: Colors.blue.withValues(alpha: 0.1),
           child: Row(
             children: [
               const Icon(Icons.devices, color: Colors.blue),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.small),
               Text(
                 'Paired Devices (${_savedDevices.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: FontSize.large, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               IconButton(
@@ -474,22 +492,22 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
+                      Icon(Icons.bluetooth_disabled, size: context.dimensions.iconXXLarge, color: Colors.grey[400]),
+                      const SizedBox(height: Spacing.large),
                       Text(
                         'No paired devices',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: FontSize.large, color: Colors.grey[600]),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: Spacing.small),
                       Text(
                         'Connect to devices from Scanner tab',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: FontSize.medium, color: Colors.grey[500]),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
-                  primary: true, // Don't use PrimaryScrollController
+                  primary: false, // Don't use PrimaryScrollController
                   itemCount: _savedDevices.length,
                   itemBuilder: (context, index) {
                     final device = _savedDevices[index];
@@ -503,7 +521,7 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
 
   Widget _buildScannerDeviceTile(UnifiedBluetoothDevice device) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: Spacing.small, vertical: Spacing.xsmall),
       child: ListTile(
         leading: Row(
           mainAxisSize: MainAxisSize.min,
@@ -511,9 +529,9 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
             // Type badge
             Text(
               device.typeBadge,
-              style: const TextStyle(fontSize: 24),
+              style: const TextStyle(fontSize: FontSize.xxlarge),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.small),
             Icon(
               Icons.bluetooth_searching,
               color: device.isClassic ? Colors.blue : Colors.green,
@@ -539,7 +557,7 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
               child: Text(
                 device.typeLabel,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: FontSize.xsmall,
                   fontWeight: FontWeight.bold,
                   color: device.isClassic ? Colors.blue[800] : Colors.green[800],
                 ),
@@ -549,7 +567,7 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
         ),
         subtitle: Text(
           '${device.id}\nRSSI: ${device.rssi} dBm',
-          style: const TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: FontSize.small),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -574,11 +592,11 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: Spacing.small, vertical: Spacing.xsmall),
       child: ListTile(
         leading: Container(
-          width: 15,
-          height: 15,
+          width: ComponentSize.iconXSmall,
+          height: ComponentSize.iconXSmall,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: dotColor,
@@ -595,15 +613,15 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
             ),
             // Type label chip
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.xsmall, vertical: Spacing.xxsmall),
               decoration: BoxDecoration(
                 color: device.isClassic ? Colors.blue.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.small),
               ),
               child: Text(
                 device.typeLabel,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: FontSize.xsmall,
                   fontWeight: FontWeight.bold,
                   color: device.isClassic ? Colors.blue[800] : Colors.green[800],
                 ),
@@ -616,22 +634,22 @@ class _UnifiedScannerScreenState extends State<UnifiedScannerScreen> with Single
           children: [
             Text(
               device.id,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: const TextStyle(fontSize: FontSize.xsmallPlus, color: Colors.grey),
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: Spacing.xsmall),
             Row(
               children: [
                 Icon(
                   isConnected ? Icons.check_circle : Icons.cancel,
-                  size: 14,
+                  size: IconSize.xsmall,
                   color: dotColor,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: Spacing.xsmall),
                 Text(
                   isConnected ? 'Connected' : 'Disconnected',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: FontSize.small,
                     fontWeight: FontWeight.bold,
                     color: dotColor,
                   ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 enum ProcessingState {
   idle,
@@ -32,39 +32,41 @@ class RecordingButton extends StatelessWidget {
   IconData _getButtonIcon() {
     switch (processingState) {
       case ProcessingState.idle:
-        return Icons.mic;
+        return AppIcons.microphone;
       case ProcessingState.recording:
-        return Icons.fiber_manual_record;
+        return AppIcons.record;
       case ProcessingState.uploading:
-        return Icons.cloud_upload;
+        return AppIcons.cloudUpload;
       case ProcessingState.transcribing:
-        return Icons.hourglass_bottom;
+        return AppIcons.loading;
       case ProcessingState.processing:
-        return Icons.auto_awesome;
+        return AppIcons.ai;
       case ProcessingState.speaking:
-        return Icons.volume_up;
+        return AppIcons.volumeUp;
     }
   }
 
   Color _getButtonColor() {
     switch (processingState) {
       case ProcessingState.idle:
-        return UIConfig.colorInfo;
+        return AppColors.info;
       case ProcessingState.recording:
-        return UIConfig.colorWarning;
+        return AppColors.warning;
       case ProcessingState.uploading:
-        return Colors.orange;
+        return AppColors.orange;
       case ProcessingState.transcribing:
-        return Colors.purple;
+        return AppColors.purple;
       case ProcessingState.processing:
-        return UIConfig.colorSuccess;
+        return AppColors.success;
       case ProcessingState.speaking:
-        return Colors.blueAccent;
+        return AppColors.info;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = context.iconSize;
+    
     final bool canStop = processingState == ProcessingState.processing ||
         processingState == ProcessingState.speaking ||
         processingState == ProcessingState.transcribing ||
@@ -77,26 +79,26 @@ class RecordingButton extends StatelessWidget {
       onTapCancel: canStop ? null : () => onMicReleased?.call(),
       onTap: canStop ? onStop : null,
       child: Container(
-        width: UIConfig.iconSizeLarge,
-        height: UIConfig.iconSizeLarge,
+        width: iconSize.xxlarge,
+        height: iconSize.xxlarge,
         decoration: BoxDecoration(
-          color: canStop ? Colors.red : _getButtonColor(),
+          color: canStop ? AppColors.error : _getButtonColor(),
           shape: BoxShape.circle,
           boxShadow: isRecording || canStop
               ? [
                   BoxShadow(
-                    color: (canStop ? Colors.red : _getButtonColor())
-                        .withValues(alpha: 0.5),
-                    blurRadius: 8,
-                    spreadRadius: 2,
+                    color: (canStop ? AppColors.error : _getButtonColor())
+                        .withValues(alpha: AppOpacity.medium),
+                    blurRadius: Spacing.small,
+                    spreadRadius: Spacing.xxsmall,
                   ),
                 ]
               : null,
         ),
         child: Icon(
-          canStop ? Icons.stop : _getButtonIcon(),
-          color: UIConfig.colorWhite,
-          size: UIConfig.iconSizeMedium,
+          canStop ? AppIcons.stop : _getButtonIcon(),
+          color: AppColors.white,
+          size: iconSize.xlarge,
         ),
       ),
     );

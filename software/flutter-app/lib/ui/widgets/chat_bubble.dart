@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/chat_message.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 
 /// Chat bubble widget (ChatGPT style) - Pure UI, no logic
 class ChatBubble extends StatelessWidget {
@@ -19,18 +19,23 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colors = AppColorScheme.of(context);
+    final spacing = context.spacing;
+    final dimensions = context.dimensions;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
 
     return RepaintBoundary(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: UIConfig.spacingSmall, horizontal: UIConfig.spacingLarge),
+        padding: EdgeInsets.symmetric(vertical: spacing.small, horizontal: spacing.medium),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
             // Avatar on left for assistant
             if (!isUser) ...[
-              _buildAvatar(isDarkMode, isUser: false),
-              SizedBox(width: UIConfig.spacingMedium),
+              _buildAvatar(context, isDarkMode, isUser: false),
+              SizedBox(width: spacing.small),
             ],
             // Message content
             Expanded(
@@ -40,26 +45,25 @@ class ChatBubble extends StatelessWidget {
                   // Role label
                   Text(
                     isUser ? 'You' : 'Assistant',
-                    style: TextStyle(
-                      fontSize: UIConfig.fontSizeSmall,
-                      fontWeight: UIConfig.fontWeightBold,
-                      color: isDarkMode ? UIConfig.colorGrey300 : UIConfig.colorGrey700,
+                    style: typography.caption.copyWith(
+                      fontWeight: FontWeightStyle.bold,
+                      color: colors.textSecondary,
                     ),
                   ),
-                  SizedBox(height: UIConfig.spacingSmall),
+                  SizedBox(height: spacing.xsmall),
                   // Message text
                   Container(
-                    padding: UIConfig.paddingAllMedium,
+                    padding: spacing.all(Spacing.medium),
                     decoration: BoxDecoration(
                       color: isUser 
-                          ? (isDarkMode ? UIConfig.colorUserBubbleDark : UIConfig.colorUserBubble)
-                          : (isDarkMode ? UIConfig.colorAiBubbleDark : UIConfig.colorAiBubble),
-                      borderRadius: UIConfig.radiusMedium,
+                          ? (isDarkMode ? AppColorsDark.userBubble : AppColors.userBubble)
+                          : (isDarkMode ? AppColorsDark.aiBubble : AppColors.aiBubble),
+                      borderRadius: dimensions.borderRadiusMedium,
                       border: Border.all(
                         color: isUser 
-                            ? (isDarkMode ? UIConfig.colorDarkPrimary : UIConfig.colorUserBubbleBorder)
-                            : (isDarkMode ? UIConfig.colorDarkSurface : UIConfig.colorGrey300),
-                        width: UIConfig.borderWidthThin,
+                            ? (isDarkMode ? AppColorsDark.primary : AppColors.userBubbleBorder)
+                            : (isDarkMode ? AppColorsDark.surface : AppColors.grey300),
+                        width: BorderSize.thin,
                       ),
                     ),
                     child: Column(
@@ -72,10 +76,9 @@ class ChatBubble extends StatelessWidget {
                             builder: (context, content, _) {
                               return Text(
                                 content.isEmpty ? message.content : content,
-                                style: TextStyle(
-                                  fontSize: UIConfig.fontSizeSmall,
-                                  height: 1.4,
-                                  color: isDarkMode ? UIConfig.colorGrey100 : UIConfig.colorAiText,
+                                style: typography.bodySmall.copyWith(
+                                  height: LineHeight.relaxed,
+                                  color: isDarkMode ? AppColorsDark.textPrimary : AppColors.aiText,
                                 ),
                               );
                             },
@@ -83,21 +86,20 @@ class ChatBubble extends StatelessWidget {
                         else
                           Text(
                             message.content,
-                            style: TextStyle(
-                              fontSize: UIConfig.fontSizeSmall,
-                              height: 1.4,
-                              color: isDarkMode ? UIConfig.colorGrey100 : UIConfig.colorAiText,
+                            style: typography.bodySmall.copyWith(
+                              height: LineHeight.relaxed,
+                              color: isDarkMode ? AppColorsDark.textPrimary : AppColors.aiText,
                             ),
                           ),
                         // Show streaming indicator for AI messages
                         if (isStreaming && !isUser) ...[
-                          SizedBox(height: UIConfig.spacingSmall),
+                          SizedBox(height: spacing.xsmall),
                           SizedBox(
-                            width: UIConfig.spacingMedium,
-                            height: UIConfig.spacingMedium,
+                            width: iconSize.small,
+                            height: iconSize.small,
                             child: CircularProgressIndicator(
-                              strokeWidth: UIConfig.borderWidthMedium,
-                              color: isDarkMode ? UIConfig.colorGrey300 : UIConfig.colorGrey600,
+                              strokeWidth: BorderSize.medium,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
@@ -106,14 +108,14 @@ class ChatBubble extends StatelessWidget {
                   ),
                   // Model info (for AI messages)
                   if (!isUser && (message.sttModel != null || message.lmModel != null)) ...[
-                    SizedBox(height: UIConfig.spacingSmall),
+                    SizedBox(height: spacing.xsmall),
                     Text(
                       [
                         if (message.sttModel != null) 'STT: ${message.sttModel}',
                         if (message.lmModel != null) 'LM: ${message.lmModel}',
                       ].join(' | '),
-                      style: UIConfig.textStyleTimestamp.copyWith(
-                        color: isDarkMode ? UIConfig.colorGrey400 : UIConfig.colorGrey600,
+                      style: typography.labelSmall.copyWith(
+                        color: colors.textTertiary,
                       ),
                     ),
                   ],
@@ -122,8 +124,8 @@ class ChatBubble extends StatelessWidget {
             ),
             // Avatar on right for user
             if (isUser) ...[
-              SizedBox(width: UIConfig.spacingMedium),
-              _buildAvatar(isDarkMode, isUser: true),
+              SizedBox(width: spacing.small),
+              _buildAvatar(context, isDarkMode, isUser: true),
             ],
           ],
         ),
@@ -131,14 +133,17 @@ class ChatBubble extends StatelessWidget {
     );
   }
   
-  Widget _buildAvatar(bool isDarkMode, {required bool isUser}) {
+  Widget _buildAvatar(BuildContext context, bool isDarkMode, {required bool isUser}) {
+    final spacing = context.spacing;
+    final iconSize = context.iconSize;
+    
     return CircleAvatar(
-      radius: UIConfig.spacingLarge,
-      backgroundColor: isDarkMode ? UIConfig.colorDarkPrimary : (isUser ? UIConfig.colorInfo : UIConfig.colorGrey300),
+      radius: spacing.medium,
+      backgroundColor: isDarkMode ? AppColorsDark.primary : (isUser ? AppColors.info : AppColors.grey300),
       child: Icon(
-        isUser ? Icons.person : Icons.smart_toy,
-        size: UIConfig.iconSizeSmall,
-        color: (isDarkMode || isUser) ? UIConfig.colorWhite : UIConfig.colorAiText,
+        isUser ? AppIcons.person : AppIcons.ai,
+        size: iconSize.small,
+        color: (isDarkMode || isUser) ? AppColors.white : AppColors.aiText,
       ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../constants/app_dimensions.dart';
+import '../../constants/app_typography.dart';
 
 /// Professional permission request dialog for microphone access
 class MicrophonePermissionDialog extends StatelessWidget {
@@ -18,12 +20,12 @@ class MicrophonePermissionDialog extends StatelessWidget {
     return AlertDialog(
       icon: Icon(
         Icons.mic,
-        size: 48,
+        size: context.dimensions.iconXLarge,
         color: theme.colorScheme.primary,
       ),
       title: const Text(
         'Microphone Permission Required',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: FontSize.xlargePlus, fontWeight: FontWeight.bold),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -31,7 +33,7 @@ class MicrophonePermissionDialog extends StatelessWidget {
         children: [
           const Text(
             'This app needs access to your microphone to:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: FontSize.large, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 16),
           _buildFeatureItem(Icons.record_voice_over, 'Record voice messages'),
@@ -42,7 +44,7 @@ class MicrophonePermissionDialog extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'Your audio is processed securely and is not stored without your consent.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: FontSize.medium, color: Colors.grey),
           ),
         ],
       ),
@@ -70,12 +72,12 @@ class MicrophonePermissionDialog extends StatelessWidget {
   Widget _buildFeatureItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.blue),
+        Icon(icon, size: ComponentSize.iconSmall, color: Colors.blue),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: FontSize.medium),
           ),
         ),
       ],

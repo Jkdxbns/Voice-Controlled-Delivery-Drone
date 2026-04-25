@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 import '../../services/preferences_service.dart';
+import '../../services/shared_folder_service.dart';
 import '../../services/tts_service.dart';
-import '../../services/permissions/permission_manager.dart';
-import '../../utils/app_logger.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
@@ -22,14 +21,12 @@ class SettingsScreenState extends State<SettingsScreen> {
   late double _ttsSpeed;
   late double _ttsPitch;
   late double _ttsVolume;
-  bool _micPermissionGranted = false;
-  bool _loadingPermissions = true;
+  String? _sharedFolderUri;
 
   @override
   void initState() {
     super.initState();
     _loadPreferences();
-    _checkPermissions();
   }
 
   void _loadPreferences() {
@@ -41,6 +38,7 @@ class SettingsScreenState extends State<SettingsScreen> {
       _ttsSpeed = prefs.ttsSpeed;
       _ttsPitch = prefs.ttsPitch;
       _ttsVolume = prefs.ttsVolume;
+      _sharedFolderUri = prefs.sharedFolderUri;
     });
   }
 
@@ -49,61 +47,22 @@ class SettingsScreenState extends State<SettingsScreen> {
     await prefs.setDarkMode(_useDarkMode);
     widget.onThemeChanged(_useDarkMode);
   }
-  
-  Future<void> _checkPermissions() async {
-    final micStatus = await Permission.microphone.status;
-    setState(() {
-      _micPermissionGranted = micStatus.isGranted;
-      _loadingPermissions = false;
-    });
-  }
-  
-  Future<void> _requestPermissions() async {
-    await PermissionManager.instance.requestPermissionsManually(context);
-    // Recheck permissions after request
-    await _checkPermissions();
-  }
-  
-  Future<void> _resetPermissionDialogs() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Permission Dialogs'),
-        content: const Text(
-          'This will reset the permission dialog flags so you can see them again on next app restart. '
-          'Current granted permissions will not be revoked.'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true) {
-      await PermissionManager.instance.resetPermissionFlags();
-      // ignore: use_build_context_synchronously
-      AppLogger.success('Permission dialogs will show on next app launch');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColorScheme.of(context);
+    final spacing = context.spacing;
+    final typography = context.typography;
+    
     return Scaffold(
       body: ListView(
         primary: false,
         children: [
           // Theme Settings
-          _buildSectionHeader(UIConfig.textTheme),
+          _buildSectionHeader(AppStrings.settingsTheme),
           SwitchListTile(
-            title: Text(UIConfig.textUseDarkMode),
-            subtitle: Text(UIConfig.textEnableDarkTheme),
+            title: Text(AppStrings.settingsUseDarkMode),
+            subtitle: Text(AppStrings.settingsEnableDarkTheme),
             value: _useDarkMode,
             onChanged: (value) {
               setState(() {
@@ -113,12 +72,46 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const Divider(),
+
+          // Shared Folder Section
+          _buildSectionHeader(AppStrings.settingsSharedFolder),
+          ListTile(
+            leading: const Icon(AppIcons.storage),
+            title: const Text(AppStrings.settingsSelectSharedFolder),
+            subtitle: Text(
+              _sharedFolderUri == null || _sharedFolderUri!.isEmpty
+                  ? AppStrings.settingsSharedFolderNotSet
+                  : AppStrings.settingsSharedFolderSet,
+            ),
+            onTap: () async {
+              final uri = await SharedFolderService.instance.pickSharedFolder();
+              if (uri != null && mounted) {
+                setState(() {
+                  _sharedFolderUri = uri;
+                });
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete),
+            title: const Text(AppStrings.settingsClearSharedFolder),
+            subtitle: const Text(AppStrings.settingsSharedFolderClearHint),
+            onTap: () async {
+              await SharedFolderService.instance.clearSharedFolder();
+              if (mounted) {
+                setState(() {
+                  _sharedFolderUri = null;
+                });
+              }
+            },
+          ),
+          const Divider(),
           
           // Download Settings - COMMENTED OUT
-          // _buildSectionHeader(UIConfig.textDownloadSettings),
+          // _buildSectionHeader(AppStrings.settingsDownload),
           // SwitchListTile(
-          //   title: Text(UIConfig.textAllowCellular),
-          //   subtitle: Text(UIConfig.textDownloadOverMobile),
+          //   title: Text(AppStrings.settingsAllowCellular),
+          //   subtitle: Text(AppStrings.settingsDownloadOverMobile),
           //   value: _allowCellularDownload,
           //   onChanged: (value) {
           //     setState(() {
@@ -129,43 +122,11 @@ class SettingsScreenState extends State<SettingsScreen> {
           // const Divider(),
 
           // Permissions Section
-          _buildSectionHeader('Permissions'),
+          _buildSectionHeader(AppStrings.settingsPermissions),
           ListTile(
-            leading: Icon(
-              _micPermissionGranted ? Icons.check_circle : Icons.cancel,
-              color: _micPermissionGranted ? Colors.green : Colors.red,
-            ),
-            title: const Text('Microphone Permission'),
-            subtitle: Text(
-              _loadingPermissions
-                  ? 'Checking...'
-                  : _micPermissionGranted
-                      ? 'Granted - Voice recording enabled'
-                      : 'Not granted - Required for voice recording',
-            ),
-            trailing: _micPermissionGranted
-                ? null
-                : ElevatedButton(
-                    onPressed: _requestPermissions,
-                    child: const Text('Grant'),
-                  ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.refresh),
-            title: const Text('Request Permissions Again'),
-            subtitle: const Text('Show permission dialogs again'),
-            onTap: _requestPermissions,
-          ),
-          ListTile(
-            leading: const Icon(Icons.restore),
-            title: const Text('Reset Permission Dialogs'),
-            subtitle: const Text('Allow dialogs to show on next app launch'),
-            onTap: _resetPermissionDialogs,
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('App Settings'),
-            subtitle: const Text('Open system app settings'),
+            leading: const Icon(AppIcons.settings),
+            title: const Text(AppStrings.settingsOpenAppSettings),
+            subtitle: const Text(AppStrings.settingsOpenSystemSettings),
             onTap: () async {
               await openAppSettings();
             },
@@ -173,10 +134,10 @@ class SettingsScreenState extends State<SettingsScreen> {
           const Divider(),
 
           // TTS Settings
-          _buildSectionHeader(UIConfig.textTtsSettings),
+          _buildSectionHeader(AppStrings.settingsTts),
           SwitchListTile(
-            title: const Text('Enable Text-to-Speech'),
-            subtitle: const Text('Speak AI responses aloud'),
+            title: const Text(AppStrings.settingsEnableTts),
+            subtitle: const Text(AppStrings.settingsSpeakResponses),
             value: _ttsEnabled,
             onChanged: (value) async {
               setState(() {
@@ -190,13 +151,13 @@ class SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: Text(UIConfig.textSpeechSpeed),
+            title: Text(AppStrings.settingsSpeechSpeed),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Current: ${_ttsSpeed.toStringAsFixed(2)}x',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  '${AppStrings.settingsCurrent} ${_ttsSpeed.toStringAsFixed(2)}x',
+                  style: typography.caption.copyWith(color: colors.textSecondary),
                 ),
                 Slider(
                   value: _ttsSpeed,
@@ -218,13 +179,13 @@ class SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ListTile(
-            title: Text(UIConfig.textSpeechPitch),
+            title: Text(AppStrings.settingsSpeechPitch),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Current: ${_ttsPitch.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  '${AppStrings.settingsCurrent} ${_ttsPitch.toStringAsFixed(2)}',
+                  style: typography.caption.copyWith(color: colors.textSecondary),
                 ),
                 Slider(
                   value: _ttsPitch,
@@ -246,13 +207,13 @@ class SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ListTile(
-            title: Text(UIConfig.textSpeechVolume),
+            title: Text(AppStrings.settingsSpeechVolume),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Current: ${(_ttsVolume * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  '${AppStrings.settingsCurrent} ${(_ttsVolume * 100).toStringAsFixed(0)}%',
+                  style: typography.caption.copyWith(color: colors.textSecondary),
                 ),
                 Slider(
                   value: _ttsVolume,
@@ -276,33 +237,49 @@ class SettingsScreenState extends State<SettingsScreen> {
           const Divider(),
 
           // App Info - COMMENTED OUT
-          // _buildSectionHeader(UIConfig.textAbout),
+          // _buildSectionHeader(AppStrings.settingsAbout),
           // ListTile(
-          //   title: Text(UIConfig.textAppVersion),
-          //   subtitle: Text(UIConfig.appVersion),
+          //   title: Text(AppStrings.settingsAppVersion),
+          //   subtitle: Text(AppStrings.appVersion),
           // ),
           // ListTile(
-          //   title: Text(UIConfig.textBuild),
-          //   subtitle: Text(UIConfig.appBuild),
+          //   title: Text(AppStrings.settingsBuild),
+          //   subtitle: Text(AppStrings.appBuild),
           // ),
+          
+          // Version Label at Bottom
+          Padding(
+            padding: spacing.all(Spacing.medium),
+            child: Center(
+              child: Text(
+                AppStrings.settingsVersion,
+                style: typography.caption.copyWith(
+                  color: colors.textSecondary,
+                  fontWeight: FontWeightStyle.medium,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
+    final spacing = context.spacing;
+    final typography = context.typography;
+    
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        UIConfig.spacingLarge, 
-        UIConfig.spacingLarge * 1.5, 
-        UIConfig.spacingLarge, 
-        UIConfig.spacingSmall
+        spacing.medium, 
+        spacing.large, 
+        spacing.medium, 
+        spacing.small
       ),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: UIConfig.fontSizeMedium,
-          fontWeight: UIConfig.fontWeightBold,
+        style: typography.titleMedium.copyWith(
+          fontWeight: FontWeightStyle.bold,
           color: Theme.of(context).colorScheme.primary,
         ),
       ),

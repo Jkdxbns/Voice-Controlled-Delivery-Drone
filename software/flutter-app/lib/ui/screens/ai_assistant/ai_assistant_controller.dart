@@ -16,7 +16,7 @@ import '../../../utils/app_logger.dart';
 import '../../../core/utils/formatters/formatters.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/database_constants.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 import '../../widgets/ai_assistant/recording_button.dart';
 
 /// Business logic for AI Assistant screen
@@ -81,7 +81,7 @@ class AIAssistantController {
   Future<void> _createNewConversation() async {
     final now = DateTime.now();
     final conversation = Conversation(
-      title: UIConfig.textNewChat,
+      title: AppStrings.aiNewChat,
       createdAt: now,
       lastModified: now,
     );
@@ -135,14 +135,16 @@ class AIAssistantController {
         } else {
           _showSnackBar('Microphone permission is required to record audio');
         }
-        return;
       }
+      // Always return after permission dialog - user must press button again
+      // This maintains push-to-talk behavior
+      return;
     }
 
     final success = await AudioService.instance.startRecording();
 
     if (!success) {
-      _showSnackBar(UIConfig.errorMicPermission);
+      _showSnackBar(AppStrings.errorMicPermission);
       return;
     }
 
@@ -159,7 +161,7 @@ class AIAssistantController {
 
     if (duration < AppConstants.minRecordingDurationMs) {
       processingState = ProcessingState.idle;
-      _showSnackBar(UIConfig.textRecordingTooShort);
+      _showSnackBar(AppStrings.statusRecordingTooShort);
       await AudioService.instance.cancelRecording();
       return;
     }
@@ -320,7 +322,7 @@ class AIAssistantController {
       processingState = ProcessingState.idle;
       TtsService.instance.stopStreaming();
       await TtsService.instance.stop();
-      _showSnackBar(UIConfig.errorServerUnavailable);
+      _showSnackBar(AppStrings.errorServerUnavailable);
       _serverStreamSubscription = null;
     }
   }
@@ -335,11 +337,22 @@ class AIAssistantController {
       // BT control - route command to device
       AppLogger.info('Handling bt-control JSON response');
       await _handleBtControlResponse(result.jsonResponse!);
+    } else if (result.isRouted) {
+      // Command was routed to another device via WebSocket
+      AppLogger.success('Command routed: ${result.routedMessage}');
+      processingState = ProcessingState.idle;
+      _showSnackBar(
+        result.routedMessage ?? 'Command sent',
+        duration: AppConstants.shortSnackbarDuration,
+      );
+      // Speak confirmation
+      final deviceName = result.targetDevice ?? 'device';
+      await TtsService.instance.speak('Command sent to $deviceName');
     } else if (result.isError) {
       // Error occurred
       AppLogger.error('Assistant API error: ${result.error}');
       processingState = ProcessingState.idle;
-      _showSnackBar(result.error ?? UIConfig.errorServerUnavailable);
+      _showSnackBar(result.error ?? AppStrings.errorServerUnavailable);
     } else {
       // Unexpected state
       AppLogger.warning('Unexpected assistant result state');
@@ -357,6 +370,7 @@ class AIAssistantController {
         AppLogger.error('BT control error: $errorMsg');
         processingState = ProcessingState.idle;
         _showSnackBar(errorMsg, duration: AppConstants.snackbarDisplayDuration);
+        await TtsService.instance.speak('Command failed: $errorMsg');
         return;
       }
 
@@ -365,27 +379,39 @@ class AIAssistantController {
       
       processingState = ProcessingState.idle;
 
-      // Show status notification based on success
+      // Extract clean device name for TTS
+      final deviceName = _extractDeviceName(response.targetDevice);
+
+      // Provide feedback based on success
       if (success) {
-        final deviceName = response.targetDevice;
         final command = response.output.generatedOutput;
         _showSnackBar(
           'Sent to $deviceName: $command',
           duration: AppConstants.shortSnackbarDuration,
         );
         AppLogger.info('BT control command sent successfully');
+        // Speak confirmation via TTS
+        await TtsService.instance.speak('Sent command to $deviceName');
       } else {
         _showSnackBar(
           'Failed to send command',
           duration: AppConstants.shortSnackbarDuration,
         );
         AppLogger.warning('BT control command failed');
+        // Speak failure via TTS
+        await TtsService.instance.speak('Failed to send command to $deviceName');
       }
     } catch (e) {
       AppLogger.error('Error handling BT control: $e');
       processingState = ProcessingState.idle;
       _showSnackBar('Failed to process command: $e');
     }
+  }
+
+  /// Extract device name from device string (e.g., "drone (MAC: XX:XX:XX)" -> "drone")
+  String _extractDeviceName(String deviceString) {
+    final match = RegExp(r'^([^(]+)').firstMatch(deviceString);
+    return match?.group(1)?.trim() ?? deviceString;
   }
 
   /// Handle server stream response
@@ -632,7 +658,7 @@ class AIAssistantController {
     TtsService.instance.stopStreaming();
     TtsService.instance.stop();
 
-    _showSnackBar(UIConfig.errorServerUnavailable);
+    _showSnackBar(AppStrings.errorServerUnavailable);
     _serverStreamSubscription = null;
   }
 

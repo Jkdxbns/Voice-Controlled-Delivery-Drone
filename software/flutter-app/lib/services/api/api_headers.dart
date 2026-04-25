@@ -3,6 +3,8 @@ import '../../utils/app_logger.dart';
 
 /// Helper to create HTTP headers with device information for auto-registration
 class ApiHeaders {
+  static bool _hasLoggedHeaders = false;
+  
   /// Get standard headers including device information for automatic tracking
   /// 
   /// Includes:
@@ -28,12 +30,18 @@ class ApiHeaders {
     // Add MAC address if available
     if (deviceInfo.macAddress != null && deviceInfo.macAddress!.isNotEmpty) {
       headers['X-Device-MAC'] = deviceInfo.macAddress!;
-      AppLogger.info('✅ API Headers with MAC:');
-      AppLogger.info('  X-Device-Id: ${deviceInfo.deviceId}');
-      AppLogger.info('  X-Device-Name: ${deviceInfo.deviceName}');
-      AppLogger.info('  X-Device-Model: ${deviceInfo.modelName}');
-      AppLogger.info('  X-Device-MAC: ${deviceInfo.macAddress}');
-    } else {
+      
+      // Only log once to reduce noise
+      if (!_hasLoggedHeaders) {
+        _hasLoggedHeaders = true;
+        AppLogger.info('✅ API Headers with MAC:');
+        AppLogger.info('  X-Device-Id: ${deviceInfo.deviceId}');
+        AppLogger.info('  X-Device-Name: ${deviceInfo.deviceName}');
+        AppLogger.info('  X-Device-Model: ${deviceInfo.modelName}');
+        AppLogger.info('  X-Device-MAC: ${deviceInfo.macAddress}');
+      }
+    } else if (!_hasLoggedHeaders) {
+      _hasLoggedHeaders = true;
       AppLogger.error('⚠️ NO MAC ADDRESS - Device will use device_id fallback');
       AppLogger.info('API Headers WITHOUT MAC:');
       AppLogger.info('  X-Device-Id: ${deviceInfo.deviceId}');

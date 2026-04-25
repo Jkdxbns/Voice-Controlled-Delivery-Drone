@@ -3,7 +3,7 @@ import '../../models/conversation.dart';
 import '../../services/database/database_helper.dart';
 import '../helpers/ui_helpers.dart';
 import '../helpers/formatters.dart';
-import '../../config/ui_config.dart';
+import '../../constants/constants.dart';
 
 class ChatHistoryScreen extends StatefulWidget {
   final Function(int conversationId) onChatSelected;
@@ -72,10 +72,10 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
   Future<void> _deleteConversation(Conversation conversation) async {
     final confirmed = await UiHelpers.showConfirmDialog(
       context: context,
-      title: 'Delete Chat?',
+      title: AppStrings.historyDeleteTitle,
       message: 'Are you sure you want to delete "${conversation.title}"? This cannot be undone.',
-      confirmText: 'DELETE',
-      confirmColor: UIConfig.colorError,
+      confirmText: AppStrings.actionDelete,
+      confirmColor: AppColors.error,
     );
 
     if (confirmed == true) {
@@ -116,10 +116,10 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
   Future<void> _clearAllChats() async {
     final confirmed = await UiHelpers.showConfirmDialog(
       context: context,
-      title: 'Clear All Chats?',
-      message: 'This will permanently delete all conversations and messages. This action cannot be undone.',
+      title: AppStrings.historyClearAllTitle,
+      message: AppStrings.historyClearAllMessage,
       confirmText: 'DELETE ALL',
-      confirmColor: UIConfig.colorError,
+      confirmColor: AppColors.error,
     );
 
     if (confirmed != true) return;
@@ -150,6 +150,12 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
   }
 
   Widget _buildBody() {
+    final colors = AppColorScheme.of(context);
+    final spacing = context.spacing;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    final dimensions = context.dimensions;
+    
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -161,16 +167,16 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(UIConfig.iconEmptyChat, size: UIConfig.iconSizeLarge, color: UIConfig.colorGrey400),
-            SizedBox(height: UIConfig.spacingLarge),
+            Icon(AppIcons.emptyChat, size: iconSize.xxlarge, color: colors.textTertiary),
+            SizedBox(height: spacing.large),
             Text(
-              'No chat history',
-              style: UIConfig.textStyleSubtitle.copyWith(color: UIConfig.colorGrey600),
+              AppStrings.historyEmpty,
+              style: typography.titleMedium.copyWith(color: colors.textSecondary),
             ),
-            SizedBox(height: UIConfig.spacingSmall),
+            SizedBox(height: spacing.small),
             Text(
-              'Start a new conversation from the home tab',
-              style: UIConfig.textStyleBody.copyWith(color: UIConfig.colorGrey500),
+              AppStrings.historyEmptySubtitle,
+              style: typography.bodyMedium.copyWith(color: colors.textTertiary),
             ),
           ],
         ),
@@ -180,23 +186,23 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
     return RefreshIndicator(
       onRefresh: _loadConversations,
       child: Scrollbar(
-        thumbVisibility: UIConfig.scrollbarThumbVisibility,
-        thickness: UIConfig.scrollbarThickness,
-        radius: Radius.circular(UIConfig.scrollbarRadius),
+        thumbVisibility: true,
+        thickness: dimensions.scrollbarThickness,
+        radius: Radius.circular(AppRadius.small),
         child: ListView.builder(
           primary: false,
-          padding: UIConfig.paddingVerticalSmall,
+          padding: EdgeInsets.symmetric(vertical: spacing.small),
           itemCount: _conversations.length,
           itemBuilder: (context, index) {
             final conversation = _conversations[index];
 
             return Card(
-              margin: EdgeInsets.symmetric(horizontal: UIConfig.spacingLarge, vertical: UIConfig.cardMarginSmall),
+              margin: EdgeInsets.symmetric(horizontal: spacing.medium, vertical: spacing.xsmall),
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   child: Icon(
-                    UIConfig.iconChat,
+                    AppIcons.chat,
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ),
@@ -204,22 +210,22 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
                   conversation.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontWeight: UIConfig.fontWeightMedium),
+                  style: typography.bodyLarge.copyWith(fontWeight: FontWeightStyle.medium),
                 ),
                 subtitle: Text(
                   Formatters.formatMessageTime(conversation.lastModified),
-                  style: UIConfig.textStyleCaption,
+                  style: typography.caption,
                 ),
                 trailing: PopupMenuButton(
-                  icon: Icon(UIConfig.iconMore),
+                  icon: Icon(AppIcons.moreVert),
                   itemBuilder: (context) => [
                     PopupMenuItem(
                       value: 'rename',
                       child: Row(
                         children: [
-                          Icon(UIConfig.iconEdit, color: UIConfig.colorInfo, size: UIConfig.iconSizeSmall),
-                          SizedBox(width: UIConfig.spacingMedium),
-                          const Text('Rename'),
+                          Icon(AppIcons.edit, color: colors.info, size: iconSize.small),
+                          SizedBox(width: spacing.small),
+                          Text(AppStrings.actionRename),
                         ],
                       ),
                     ),
@@ -227,9 +233,9 @@ class ChatHistoryScreenState extends State<ChatHistoryScreen> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(UIConfig.iconDelete, color: UIConfig.colorError, size: UIConfig.iconSizeSmall),
-                          SizedBox(width: UIConfig.spacingMedium),
-                          Text('Delete', style: TextStyle(color: UIConfig.colorError)),
+                          Icon(AppIcons.delete, color: colors.error, size: iconSize.small),
+                          SizedBox(width: spacing.small),
+                          Text(AppStrings.actionDelete, style: TextStyle(color: colors.error)),
                         ],
                       ),
                     ),

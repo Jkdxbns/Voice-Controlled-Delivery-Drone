@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../config/ui_config.dart';
+import '../../../constants/constants.dart';
 
 /// Displays the current STT and LM model information
 class ModelInfoBar extends StatelessWidget {
@@ -14,66 +14,66 @@ class ModelInfoBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    final iconSize = context.iconSize;
+    final typography = context.typography;
+    
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: UIConfig.spacingMedium,
-        vertical: UIConfig.spacingSmall,
+        horizontal: spacing.medium,
+        vertical: spacing.small,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E3A5F),
+        color: AppColors.modelInfoBarBackground,
         border: Border(
           bottom: BorderSide(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: UIConfig.borderWidthThin,
+            color: AppColors.white.withValues(alpha: AppOpacity.subtle),
+            width: BorderSize.thin,
           ),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.mic,
-            size: 16,
-            color: Color(0xFF64B5F6),
+          Icon(
+            AppIcons.microphone,
+            size: iconSize.small,
+            color: AppColors.modelInfoSttHighlight,
           ),
-          const SizedBox(width: 4),
-          const Text(
-            'STT: ',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFB0BEC5),
+          SizedBox(width: spacing.xsmall),
+          Text(
+            AppStrings.aiStt,
+            style: typography.labelMedium.copyWith(
+              fontWeight: FontWeightStyle.bold,
+              color: AppColors.modelInfoLabel,
             ),
           ),
           Text(
             sttModel,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF64B5F6),
-              fontWeight: FontWeight.bold,
+            style: typography.labelMedium.copyWith(
+              color: AppColors.modelInfoSttHighlight,
+              fontWeight: FontWeightStyle.bold,
             ),
           ),
-          const SizedBox(width: 24),
-          const Icon(
-            Icons.psychology,
-            size: 16,
-            color: Color(0xFF81C784),
+          SizedBox(width: spacing.large),
+          Icon(
+            AppIcons.ai,
+            size: iconSize.small,
+            color: AppColors.modelInfoLmHighlight,
           ),
-          const SizedBox(width: 4),
-          const Text(
+          SizedBox(width: spacing.xsmall),
+          Text(
             'LM: ',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFB0BEC5),
+            style: typography.labelMedium.copyWith(
+              fontWeight: FontWeightStyle.bold,
+              color: AppColors.modelInfoLabel,
             ),
           ),
           Text(
             lmModel,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF81C784),
-              fontWeight: FontWeight.bold,
+            style: typography.labelMedium.copyWith(
+              color: AppColors.modelInfoLmHighlight,
+              fontWeight: FontWeightStyle.bold,
             ),
           ),
         ],

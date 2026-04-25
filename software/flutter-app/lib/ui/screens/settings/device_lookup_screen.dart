@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import '../../../services/api/device_registration_api_service.dart';
 import '../../../services/server/server_config_service.dart';
 import '../../../utils/app_logger.dart';
@@ -21,10 +23,11 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDevices();
+    loadDevices();
   }
 
-  Future<void> _loadDevices() async {
+  // Public method so it can be called from main.dart via GlobalKey
+  Future<void> loadDevices() async {
     if (!mounted) return;
     
     setState(() {
@@ -140,7 +143,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
           await Future.delayed(const Duration(milliseconds: 300));
           // Refresh device list only if still mounted
           if (mounted) {
-            await _loadDevices();
+            await loadDevices();
           }
         }
       } else {
@@ -167,7 +170,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
             action: SnackBarAction(
               label: 'Refresh',
               textColor: Colors.white,
-              onPressed: _loadDevices,
+              onPressed: loadDevices,
             ),
           ),
         );
@@ -198,7 +201,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
           await Future.delayed(const Duration(milliseconds: 300));
           // Refresh device list only if still mounted
           if (mounted) {
-            await _loadDevices();
+            await loadDevices();
           }
         }
       } else {
@@ -222,19 +225,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: _loadDevices,
-          ),
-        ],
-      ),
-      body: _buildBody(theme),
-    );
+    return _buildBody(theme);
   }
 
   Widget _buildBody(ThemeData theme) {
@@ -269,7 +260,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _loadDevices,
+              onPressed: loadDevices,
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
@@ -351,19 +342,19 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
   }) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 32),
+        Icon(icon, color: color, size: ComponentSize.iconLarge),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: FontSize.xxlarge,
             fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: FontSize.small, color: Colors.grey),
         ),
       ],
     );
@@ -475,7 +466,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
                   DataCell(
                     Text(
                       modelName,
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: FontSize.small),
                     ),
                   ),
                   DataCell(
@@ -495,7 +486,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
                             ipAddress,
                             style: const TextStyle(
                               fontFamily: 'monospace',
-                              fontSize: 12,
+                              fontSize: FontSize.small,
                             ),
                           ),
                         ),
@@ -507,7 +498,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
                       device['mac_address'] as String? ?? 'N/A',
                       style: const TextStyle(
                         fontFamily: 'monospace',
-                        fontSize: 11,
+                        fontSize: FontSize.xsmallPlus,
                       ),
                     ),
                   ),
@@ -525,7 +516,7 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
                         status.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: FontSize.xsmallPlus,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -538,13 +529,13 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
                               DateTime.parse(lastSeen),
                             )
                           : 'N/A',
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: FontSize.small),
                     ),
                   ),
                   // Actions column - edit button
                   DataCell(
                     IconButton(
-                      icon: const Icon(Icons.edit, size: 18),
+                      icon: const Icon(Icons.edit, size: ComponentSize.iconSmall),
                       tooltip: 'Edit device name',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
@@ -622,18 +613,18 @@ class _DeviceLookupScreenState extends State<DeviceLookupScreen> {
             const SizedBox(height: 24),
             Icon(
               Icons.devices_other,
-              size: 48,
+              size: ComponentSize.iconXLarge,
               color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 12),
             const Text(
               'No devices registered yet',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: FontSize.large, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Text(
               'Make any API request from your device\nand it will appear here automatically',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(fontSize: FontSize.medium, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],

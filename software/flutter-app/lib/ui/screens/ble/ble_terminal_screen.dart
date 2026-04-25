@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import '../../../models/ble_device_config.dart';
 import '../../../services/ble/ble_service.dart';
 import '../../../utils/app_logger.dart';
@@ -159,6 +161,7 @@ class _BleTerminalScreenState extends State<BleTerminalScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: context.dimensions.appBarHeight,
         title: const Text('BLE Terminal (HM-10)'),
         backgroundColor: Colors.blue,
         actions: [
@@ -183,7 +186,7 @@ class _BleTerminalScreenState extends State<BleTerminalScreen> {
                     child: Text(
                       'No messages yet\nConnect a device and start communicating',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      style: TextStyle(color: Colors.grey, fontSize: FontSize.large),
                     ),
                   )
                 : ListView.builder(
@@ -290,7 +293,7 @@ class _BleTerminalScreenState extends State<BleTerminalScreen> {
               Text(
                 message.isIncoming ? 'From' : 'To',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: FontSize.small,
                   color: message.isIncoming ? Colors.blue : Colors.green,
                   fontWeight: FontWeight.bold,
                 ),
@@ -299,20 +302,20 @@ class _BleTerminalScreenState extends State<BleTerminalScreen> {
               Expanded(
                 child: Text(
                   message.deviceId,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(fontSize: FontSize.small, color: Colors.grey),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}:${message.timestamp.second.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: const TextStyle(fontSize: FontSize.xsmallPlus, color: Colors.grey),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             message.data,
-            style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+            style: const TextStyle(fontSize: FontSize.medium, fontFamily: 'monospace'),
           ),
         ],
       ),
@@ -385,12 +388,12 @@ class _BleTerminalScreenState extends State<BleTerminalScreen> {
               children: [
                 const Text(
                   '📝 Custom Widget Area',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: FontSize.medium),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Add your custom buttons and controls here',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: FontSize.small, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
                 

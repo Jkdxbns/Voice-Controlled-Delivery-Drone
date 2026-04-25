@@ -20,7 +20,7 @@ class AssistantApiService {
     String? lmModel,
   }) async {
     try {
-      final url = Uri.parse('$baseUrl/api/v1/assistant/handle');
+      final url = Uri.parse('$baseUrl/lm/query');
       
       AppLogger.info('Assistant request: ${userQuery.substring(0, userQuery.length.clamp(0, 50))}...');
 
@@ -60,7 +60,7 @@ class AssistantApiService {
           _parseSSEStream(streamedResponse.stream),
         );
       } else {
-        // JSON response (bt-control)
+        // JSON response (bt-control or routed)
         AppLogger.success('JSON response detected');
         final responseBody = await streamedResponse.stream.bytesToString();
         final jsonData = jsonDecode(responseBody) as Map<String, dynamic>;
@@ -68,6 +68,14 @@ class AssistantApiService {
         if (jsonData['status'] == 'error') {
           final error = jsonData['error'] as Map<String, dynamic>;
           return AssistantApiResult.error(error['message'] as String);
+        }
+        
+        // Handle "routed" status - command was sent to another device via WebSocket
+        if (jsonData['status'] == 'routed') {
+          final message = jsonData['message'] as String? ?? 'Command routed';
+          final targetDevice = jsonData['target_device'] as String? ?? 'device';
+          AppLogger.success('Command routed to another device: $message');
+          return AssistantApiResult.routed(message, targetDevice);
         }
         
         final result = jsonData['result'] as Map<String, dynamic>;
@@ -162,12 +170,16 @@ class AssistantApiResult {
   final Stream<ServerEvent>? streamingEvents;
   final AssistantResponse? jsonResponse;
   final String? error;
+  final String? routedMessage;
+  final String? targetDevice;
 
   const AssistantApiResult._({
     required this.type,
     this.streamingEvents,
     this.jsonResponse,
     this.error,
+    this.routedMessage,
+    this.targetDevice,
   });
 
   factory AssistantApiResult.streaming(Stream<ServerEvent> events) {
@@ -191,13 +203,23 @@ class AssistantApiResult {
     );
   }
 
+  factory AssistantApiResult.routed(String message, String targetDevice) {
+    return AssistantApiResult._(
+      type: AssistantApiResultType.routed,
+      routedMessage: message,
+      targetDevice: targetDevice,
+    );
+  }
+
   bool get isStreaming => type == AssistantApiResultType.streaming;
   bool get isJson => type == AssistantApiResultType.json;
   bool get isError => type == AssistantApiResultType.error;
+  bool get isRouted => type == AssistantApiResultType.routed;
 }
 
 enum AssistantApiResultType {
   streaming,
   json,
   error,
+  routed,
 }

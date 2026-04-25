@@ -293,7 +293,7 @@ class TtsService {
   Future<void> _updateParameter(
     String paramName,
     double value,
-    Future<void> Function(double) setter,
+    Future<void> Function(FlutterTts, double) setter,
     Future<void> Function(double) preferenceSetter,
   ) async {
     if (!_isInitialized) {
@@ -307,7 +307,7 @@ class TtsService {
     
     AppLogger.info('TTS: Setting $paramName to $value');
     await Future.wait([
-      setter(value),
+      setter(_flutterTts!, value),
       preferenceSetter(value),
     ]);
     AppLogger.success('TTS: $paramName updated and saved to $value');
@@ -316,21 +316,21 @@ class TtsService {
   Future<void> updateSpeed(double speed) => _updateParameter(
     'speed',
     speed,
-    _flutterTts!.setSpeechRate,
+    (tts, value) => tts.setSpeechRate(value),
     PreferencesService.instance.setTtsSpeed,
   );
   
   Future<void> updatePitch(double pitch) => _updateParameter(
     'pitch',
     pitch,
-    _flutterTts!.setPitch,
+    (tts, value) => tts.setPitch(value),
     PreferencesService.instance.setTtsPitch,
   );
   
   Future<void> updateVolume(double volume) => _updateParameter(
     'volume',
     volume,
-    _flutterTts!.setVolume,
+    (tts, value) => tts.setVolume(value),
     PreferencesService.instance.setTtsVolume,
   );
   
