@@ -1,8 +1,8 @@
 {
-  "categories": ["text-generation", "bt-control"],
+  "categories": ["text-generation", "robot-control", "bt-control", "device-message", "system-alarm", "system-calendar", "system-call", "file-transfer"],
   
   "pass1_output_format": {
-    "category": "<text-generation OR bt-control>",
+    "category": "<text-generation OR robot-control OR bt-control OR device-message OR system-alarm OR system-calendar OR system-call OR file-transfer>",
     "confidence": "<0.0 to 1.0>",
     "reasoning": "<brief explanation>",
     "user-data": "<actual user prompt>"
@@ -28,6 +28,9 @@
       "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
       "parent-device": "<parent_device_name (MAC: XX:XX:XX:XX:XX:XX)>",
       "output-format": [
+        "led:on",
+        "led:off",
+        "led:<value>",
         "move:forward:<cm>",
         "move:backward:<cm>",
         "move:up:<cm>",
@@ -44,6 +47,74 @@
       ],
       "output": {
         "generated_output": "<command string>"
+      }
+    },
+    
+    "device-message": {
+      "task": "device-message",
+      "user-data": "<user prompt>",
+      "processing-device": "server",
+      "source-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "output": {
+        "message": "<the message to send>",
+        "generated_output": "<the message to send>"
+      }
+    },
+
+    "system-alarm": {
+      "task": "system-alarm",
+      "user-data": "<user prompt>",
+      "processing-device": "server",
+      "source-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "output": {
+        "hour": "<0-23>",
+        "minute": "<0-59>",
+        "label": "<optional label>"
+      }
+    },
+
+    "system-calendar": {
+      "task": "system-calendar",
+      "user-data": "<user prompt>",
+      "processing-device": "server",
+      "source-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "output": {
+        "title": "<event title>",
+        "start_time": "<ISO 8601 datetime>",
+        "duration_min": "<minutes>",
+        "location": "<optional>",
+        "notes": "<optional>"
+      }
+    },
+
+    "system-call": {
+      "task": "system-call",
+      "user-data": "<user prompt>",
+      "processing-device": "server",
+      "source-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "output": {
+        "phone_number": "<digits or empty>",
+        "contact_name": "<optional>"
+      }
+    },
+
+    "file-transfer": {
+      "task": "file-transfer",
+      "user-data": "<user prompt>",
+      "processing-device": "server",
+      "source-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "target-device": "<device_name (MAC: XX:XX:XX:XX:XX:XX)>",
+      "output": {
+        "action": "<move|copy>",
+        "file_query": "<file name or query>",
+        "source_mac": "<source mac>",
+        "target_mac": "<target mac>",
+        "source_name": "<source name>",
+        "target_name": "<target name>"
       }
     }
   }

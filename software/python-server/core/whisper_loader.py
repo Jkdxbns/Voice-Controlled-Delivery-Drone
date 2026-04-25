@@ -21,10 +21,22 @@ from config import WHISPER_CACHE
 
 
 class WhisperLoader:
-    """Manages Whisper model loading and in-memory caching."""
+    """Manages Whisper model loading and in-memory caching (Singleton)."""
+    
+    _instance = None
+    
+    def __new__(cls):
+        """Ensure only one instance exists."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
-        """Initialize the Whisper loader with empty cache."""
+        """Initialize the Whisper loader with empty cache (only once)."""
+        if self._initialized:
+            return
+        self._initialized = True
         self._cache: Dict[str, dict] = {}
         print(f"[WHISPER] Initialized loader with cache: {WHISPER_CACHE}")
     

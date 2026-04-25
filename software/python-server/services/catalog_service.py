@@ -47,10 +47,22 @@ def _get_gemini_models_fallback() -> dict:
 
 
 class CatalogService:
-    """Manages model catalog for STT and LM models."""
+    """Manages model catalog for STT and LM models (Singleton)."""
+    
+    _instance = None
+    
+    def __new__(cls):
+        """Ensure only one instance exists."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
-        """Initialize catalog service."""
+        """Initialize catalog service (only once)."""
+        if self._initialized:
+            return
+        self._initialized = True
         self.gemini_loader = GeminiLoader()
         print("[CATALOG_SERVICE] Initialized")
     

@@ -4,10 +4,22 @@ from core.gemini_loader import GeminiLoader
 
 
 class LMService:
-    """Handles text generation using Gemini language models."""
+    """Handles text generation using Gemini language models (Singleton)."""
+    
+    _instance = None
+    
+    def __new__(cls):
+        """Ensure only one instance exists."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
-        """Initialize LM service with Gemini loader."""
+        """Initialize LM service with Gemini loader (only once)."""
+        if self._initialized:
+            return
+        self._initialized = True
         self.gemini_loader = GeminiLoader()
         print("[LM_SERVICE] Initialized")
     

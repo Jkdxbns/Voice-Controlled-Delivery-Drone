@@ -11,10 +11,22 @@ from config import get_api_key
 
 
 class GeminiLoader:
-    """Manages Gemini language model initialization."""
+    """Manages Gemini language model initialization (Singleton)."""
+    
+    _instance = None
+    
+    def __new__(cls):
+        """Ensure only one instance exists."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
     
     def __init__(self):
-        """Initialize the Gemini loader."""
+        """Initialize the Gemini loader (only once)."""
+        if self._initialized:
+            return
+        self._initialized = True
         self._configured = False
         print("[GEMINI] Initialized loader")
     
