@@ -38,14 +38,14 @@ class BluetoothDeviceRegistrationService {
 
       // Create device info for the Bluetooth device
       // Use BT device's MAC as device_id
-      // Store parent phone MODEL NAME in IP address field (since BT devices connect to internet via parent phone)
-      // Using model name (e.g., "SM-A356E") instead of device name makes more sense for identification
+      // Store parent phone MAC in IP address field for cross-device routing
+      // Server uses this to route commands to the correct phone
       final btDeviceInfo = DeviceInfoData(
         deviceId: btDevice.id, // MAC address of BT device
         deviceName: btDevice.displayName, // Original BT device name
         modelName: btDevice.isClassic ? 'Bluetooth Classic' : 'BLE Device',
         macAddress: btDevice.id, // BT MAC address
-        ipAddress: phoneInfo.modelName, // Parent phone MODEL NAME (e.g., "SM-A356E") stored in IP field
+        ipAddress: phoneInfo.macAddress ?? '', // Parent phone MAC for cross-device routing
       );
 
       final service = DeviceRegistrationApiService(
@@ -58,9 +58,8 @@ class BluetoothDeviceRegistrationService {
         _registeredDevices.add(btDevice.id);
         AppLogger.success('✓ Bluetooth device registered: ${btDevice.displayName}');
         AppLogger.success('  └─ Parent Device: ${phoneInfo.deviceName}');
-        AppLogger.success('  └─ Parent Model: ${phoneInfo.modelName}');
+        AppLogger.success('  └─ Parent MAC: ${phoneInfo.macAddress}');
         AppLogger.success('  └─ BT MAC: ${btDevice.id}');
-        AppLogger.success('  └─ Phone ID: ${phoneInfo.deviceId}');
       } else {
         AppLogger.error('Failed to register BT device: ${btDevice.displayName}');
       }

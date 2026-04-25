@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/unified_bluetooth_device.dart';
@@ -138,7 +140,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeService();
+    // Service is already initialized by AppInitializationService
     _loadSavedDevices();
     _loadLayoutNames().then((_) => _loadLastLayout());
     _listenToConnectionStates();
@@ -151,14 +153,6 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
     _dataSubscription?.cancel();
     _terminalScrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _initializeService() async {
-    try {
-      await _unifiedService.initialize();
-    } catch (e) {
-      AppLogger.error('Failed to initialize: $e');
-    }
   }
 
   Future<void> _loadSavedDevices() async {
@@ -525,7 +519,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Or overwrite existing:',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: FontSize.small, color: Colors.grey),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -539,7 +533,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                       return ListTile(
                         dense: true,
                         title: Text(name),
-                        trailing: const Icon(Icons.save, size: 18),
+                        trailing: const Icon(Icons.save, size: ComponentSize.iconSmall),
                         onTap: () {
                           Navigator.pop(context);
                           _confirmOverwriteLayout(name);
@@ -726,13 +720,13 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
               // Layout name indicator
               Text(
                 'Layout: ${_currentLayoutName ?? "Unsaved"}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: FontSize.small, color: Colors.grey[600]),
               ),
               if (_hasUnsavedChanges)
                 Text(
                   '*',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: FontSize.medium,
                     color: Colors.orange[700],
                     fontWeight: FontWeight.bold,
                   ),
@@ -748,11 +742,11 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                   overlayColor: MaterialStateProperty.all(Colors.transparent),
                   splashFactory: NoSplash.splashFactory,
                 ),
-                icon: const Icon(Icons.save, size: 16, color: Colors.green),
+                icon: const Icon(Icons.save, size: ComponentSize.iconXSmall, color: Colors.green),
                 label: const Text(
                   'Save',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: FontSize.smallPlus,
                     color: Colors.green,
                     decoration: TextDecoration.underline,
                   ),
@@ -786,7 +780,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                 child: Text(
                   _editMode ? 'Edit UI (On)' : 'Edit UI (Off)',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: FontSize.smallPlus,
                     color: Theme.of(context).colorScheme.primary,
                     decoration: TextDecoration.underline,
                   ),
@@ -805,7 +799,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                   child: Text(
                     'Set Value',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: FontSize.smallPlus,
                       color: Theme.of(context).colorScheme.primary,
                       decoration: TextDecoration.underline,
                     ),
@@ -828,11 +822,11 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                     overlayColor: MaterialStateProperty.all(Colors.transparent),
                     splashFactory: NoSplash.splashFactory,
                   ),
-                  icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                  icon: const Icon(Icons.delete, size: ComponentSize.iconXSmall, color: Colors.red),
                   label: const Text(
                     'Delete',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: FontSize.smallPlus,
                       color: Colors.red,
                       decoration: TextDecoration.underline,
                     ),
@@ -967,7 +961,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                           child: const Text(
                             'E-STOP',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: FontSize.large,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1008,12 +1002,12 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                 color: Colors.grey[900],
                 child: Row(
                   children: [
-                    Icon(Icons.terminal, size: 14, color: Colors.grey[400]),
+                    Icon(Icons.terminal, size: ComponentSize.iconXSmall, color: Colors.grey[400]),
                     const SizedBox(width: 6),
                     Text(
                       'Incoming Data',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: FontSize.small,
                         color: Colors.grey[400],
                         fontWeight: FontWeight.w500,
                       ),
@@ -1034,7 +1028,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                         child: Text(
                           'Clear',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: FontSize.xsmallPlus,
                             color: Colors.grey[500],
                           ),
                         ),
@@ -1049,7 +1043,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                         child: Text(
                           'No data received yet...',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: FontSize.small,
                             color: Colors.grey[600],
                             fontStyle: FontStyle.italic,
                           ),
@@ -1068,7 +1062,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                             child: Text(
                               _receivedData[index],
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: FontSize.xsmallPlus,
                                 color: Colors.greenAccent,
                                 fontFamily: 'Courier',
                                 fontFamilyFallback: ['monospace'],
@@ -1372,7 +1366,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
           const Positioned(
             top: 4,
             right: 4,
-            child: Icon(Icons.open_with, size: 16, color: Colors.yellow),
+            child: Icon(Icons.open_with, size: ComponentSize.iconXSmall, color: Colors.yellow),
           ),
       ],
     );
@@ -1398,7 +1392,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                 Text(
                   w.label,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: FontSize.small,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
@@ -1434,7 +1428,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
               // Show current value below slider
               Text(
                 '${w.sliderValue.toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 10, color: Colors.black87),
+                style: const TextStyle(fontSize: FontSize.xsmall, color: Colors.black87),
               ),
             ],
           ),
@@ -1464,7 +1458,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                 ? Text(
                     w.label,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: FontSize.medium,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -1519,12 +1513,12 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                             ? Text(
                                 upLabel,
                                 style: const TextStyle(
-                                  fontSize: 8,
+                                  fontSize: FontSize.xxsmall,
                                   color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
                               )
-                            : const Icon(Icons.arrow_drop_up, size: 20),
+                            : const Icon(Icons.arrow_drop_up, size: ComponentSize.iconSmall),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1555,12 +1549,12 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                                 ? Text(
                                     leftLabel,
                                     style: const TextStyle(
-                                      fontSize: 8,
+                                      fontSize: FontSize.xxsmall,
                                       color: Colors.white,
                                     ),
                                     textAlign: TextAlign.center,
                                   )
-                                : const Icon(Icons.arrow_left, size: 18),
+                                : const Icon(Icons.arrow_left, size: ComponentSize.iconSmall),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1591,12 +1585,12 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                                 ? Text(
                                     rightLabel,
                                     style: const TextStyle(
-                                      fontSize: 8,
+                                      fontSize: FontSize.xxsmall,
                                       color: Colors.white,
                                     ),
                                     textAlign: TextAlign.center,
                                   )
-                                : const Icon(Icons.arrow_right, size: 18),
+                                : const Icon(Icons.arrow_right, size: ComponentSize.iconSmall),
                           ),
                         ),
                       ],
@@ -1625,12 +1619,12 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                             ? Text(
                                 downLabel,
                                 style: const TextStyle(
-                                  fontSize: 8,
+                                  fontSize: FontSize.xxsmall,
                                   color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
                               )
-                            : const Icon(Icons.arrow_drop_down, size: 20),
+                            : const Icon(Icons.arrow_drop_down, size: ComponentSize.iconSmall),
                       ),
                     ),
                   ],
@@ -1669,7 +1663,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
               const SizedBox(width: 8),
               const Text(
                 'Device:',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: FontSize.medium),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1687,7 +1681,7 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                   value: _selectedDevice?.id,
                   hint: Text(
                     connectedDevices.isEmpty ? 'No devices' : 'Select',
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(fontSize: FontSize.smallPlus),
                   ),
                   items: connectedDevices.map((device) {
                     return DropdownMenuItem(
@@ -1696,14 +1690,14 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                         children: [
                           Text(
                             device.typeBadge,
-                            style: const TextStyle(fontSize: 14),
+                            style: const TextStyle(fontSize: FontSize.medium),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               device.displayName,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13),
+                              style: const TextStyle(fontSize: FontSize.smallPlus),
                             ),
                           ),
                         ],
@@ -1761,14 +1755,14 @@ class BluetoothControllerScreenState extends State<BluetoothControllerScreen> {
                 ],
                 child: ElevatedButton.icon(
                   onPressed: null,
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(Icons.add, size: ComponentSize.iconXSmall),
                   label: const Text('Add Widgets'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
-                    textStyle: const TextStyle(fontSize: 13),
+                    textStyle: const TextStyle(fontSize: FontSize.smallPlus),
                   ),
                 ),
               ),

@@ -65,12 +65,26 @@ def register_device():
         print(f"  model_name present: {bool(model_name)}")
         return jsonify(error="Missing required fields: device_id, device_name, model_name"), 400
     
-    # Use client-provided IP address if available (for BT devices, this contains parent phone model)
+    # Use client-provided IP address if available (for BT devices, this contains parent phone MAC)
     # Otherwise fall back to request IP address (for Wi-Fi devices)
     ip_address = payload.get("ip_address") or request.remote_addr
     
+    # Detect if this is a Bluetooth device registration
+    # BT devices have their parent phone's MAC in ip_address field
+    parent_device = None
+    device_type = 'android'
+    
+    # Check if ip_address looks like a MAC address (BT device registration)
+    if ip_address and ':' in ip_address and len(ip_address) == 17:
+        parent_device = ip_address
+        device_type = 'bluetooth'
+        ip_address = ''  # Clear IP since it's actually a MAC
+        print(f"[REGISTRATION] Detected BT device with parent MAC: {parent_device}")
+    
     print(f"\n[DEBUG] Registration Parameters:")
     print(f"  ip_address: {ip_address}")
+    print(f"  device_type: {device_type}")
+    print(f"  parent_device: {parent_device}")
     
     # Register device
     try:
@@ -80,7 +94,9 @@ def register_device():
             device_name=device_name,
             model_name=model_name,
             ip_address=ip_address,
-            mac_address=mac_address
+            mac_address=mac_address,
+            device_type=device_type,
+            parent_device=parent_device
         )
         
         print(f"[SUCCESS] Device registered successfully:")
@@ -133,6 +149,18 @@ def list_devices():
     try:
         # Update statuses before returning list
         registry_module.device_registry.update_device_statuses()
+        
+        # Also mark WebSocket-connected devices as online
+        from services.websocket_service import websocket_service
+        connected_macs = websocket_service.get_connected_device_macs()
+        for mac in connected_macs:
+            registry_module.device_registry.update_last_seen(mac)
+        
+        # Mark BT devices of connected parents as online too
+        for mac in connected_macs:
+            bt_devices = websocket_service.get_bt_devices_for_parent(mac)
+            for bt_mac in bt_devices:
+                registry_module.device_registry.update_last_seen(bt_mac)
         
         devices = registry_module.device_registry.get_all_devices()
         stats = registry_module.device_registry.get_stats()

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import '../../../models/unified_bluetooth_device.dart';
 import '../../../services/bluetooth/unified_bluetooth_service.dart';
 import '../../../utils/app_logger.dart';
@@ -29,7 +31,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeService();
+    // Service is already initialized by AppInitializationService
     _loadSavedDevices();
     _listenToConnectionStates();
     _listenToDataStream(); // Single data stream listener
@@ -38,8 +40,8 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload devices when tab is opened/switched to
-    _loadSavedDevices();
+    // Note: Devices are loaded in initState
+    // Tab switching reloads via the parent TabBar
   }
   
   @override
@@ -49,14 +51,6 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _initializeService() async {
-    try {
-      await _unifiedService.initialize();
-    } catch (e) {
-      AppLogger.error('Failed to initialize: $e');
-    }
   }
 
   Future<void> _loadSavedDevices() async {
@@ -229,12 +223,12 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
         color: Colors.red.withValues(alpha: 0.1),
         child: const Row(
           children: [
-            Icon(Icons.bluetooth_disabled, color: Colors.red, size: 18),
+            Icon(Icons.bluetooth_disabled, color: Colors.red, size: ComponentSize.iconSmall),
             SizedBox(width: 8),
             Expanded(
               child: Text(
                 'No devices connected',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: FontSize.medium),
               ),
             ),
           ],
@@ -250,11 +244,11 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.bluetooth_connected, color: Colors.green, size: 18),
+              const Icon(Icons.bluetooth_connected, color: Colors.green, size: ComponentSize.iconSmall),
               const SizedBox(width: 6),
               Text(
                 '${connectedDevices.length} device${connectedDevices.length > 1 ? 's' : ''} connected',
-                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: FontSize.smallPlus),
               ),
             ],
           ),
@@ -264,14 +258,14 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
             runSpacing: 6,
             children: connectedDevices.map((device) {
               return Chip(
-                avatar: Text(device.typeBadge, style: const TextStyle(fontSize: 14)),
+                avatar: Text(device.typeBadge, style: const TextStyle(fontSize: FontSize.medium)),
                 label: Text(
                   device.displayName,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: FontSize.small),
                 ),
-                deleteIcon: const Icon(Icons.close, size: 16),
+                deleteIcon: const Icon(Icons.close, size: ComponentSize.iconXSmall),
                 onDeleted: () => _disconnectDevice(device.id),
                 backgroundColor: device.isClassic
                     ? Colors.blue.withValues(alpha: 0.2)
@@ -289,20 +283,20 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
 
   Widget _buildMessageList() {
     if (_messages.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.message, size: 64, color: Colors.grey),
+            Icon(Icons.message, size: context.dimensions.iconXXLarge, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'No messages yet',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(fontSize: FontSize.large, color: Colors.grey),
             ),
             SizedBox(height: 8),
             Text(
               'Connect to a device and start messaging',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: FontSize.medium, color: Colors.grey),
             ),
           ],
         ),
@@ -329,7 +323,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
         children: [
           if (!message.isOutgoing) ...[
             // Device badge for incoming messages
-            Text(device.typeBadge, style: const TextStyle(fontSize: 20)),
+            Text(device.typeBadge, style: const TextStyle(fontSize: FontSize.xlargePlus)),
             const SizedBox(width: 8),
           ],
           
@@ -359,7 +353,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                           message.deviceName,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: FontSize.small,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -376,7 +370,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                         child: Text(
                           device.typeLabel,
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: FontSize.tiny,
                             fontWeight: FontWeight.bold,
                             color: device.isClassic ? Colors.blue[900] : Colors.green[900],
                           ),
@@ -389,7 +383,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                   // Message content
                   Text(
                     message.content,
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: FontSize.medium),
                   ),
                   
                   const SizedBox(height: 4),
@@ -398,7 +392,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                   Text(
                     _formatTimestamp(message.timestamp),
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: FontSize.xsmall,
                       color: Colors.grey[600],
                     ),
                   ),
@@ -410,7 +404,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
           if (message.isOutgoing) ...[
             const SizedBox(width: 8),
             // Device badge for outgoing messages
-            Text(device.typeBadge, style: const TextStyle(fontSize: 20)),
+            Text(device.typeBadge, style: const TextStyle(fontSize: FontSize.xlargePlus)),
           ],
         ],
       ),
@@ -445,7 +439,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                   children: [
                     const Text(
                       'Target Device',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: FontSize.small, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
@@ -455,21 +449,21 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                         isDense: true,
                       ),
                       initialValue: _selectedDevice?.id,
-                      hint: const Text('Select device', style: TextStyle(fontSize: 13)),
+                      hint: const Text('Select device', style: TextStyle(fontSize: FontSize.smallPlus)),
                       items: connectedDevices.map((device) {
                         return DropdownMenuItem(
                           value: device.id,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(device.typeBadge, style: const TextStyle(fontSize: 14)),
+                              Text(device.typeBadge, style: const TextStyle(fontSize: FontSize.medium)),
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
                                   device.displayName,
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
-                                  style: const TextStyle(fontSize: 13),
+                                  style: const TextStyle(fontSize: FontSize.smallPlus),
                                 ),
                               ),
                             ],
@@ -498,7 +492,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                   children: [
                     const Text(
                       'Broadcast Mode',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: FontSize.small, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -508,7 +502,7 @@ class _UnifiedTerminalScreenState extends State<UnifiedTerminalScreen> {
                           child: Text(
                             _isBroadcastMode ? 'Send to all' : 'Off',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: FontSize.xsmallPlus,
                               color: _isBroadcastMode ? Colors.orange : Colors.grey,
                             ),
                             overflow: TextOverflow.ellipsis,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:async';
 import '../../../constants/app_dimensions.dart';
+import '../../../constants/app_typography.dart';
 import '../../../models/ble_device_config.dart';
 import '../../../services/ble/ble_service.dart';
 import '../../../services/ble/ble_device_manager.dart';
@@ -242,7 +243,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
             color: Colors.blue[50],
             child: const Row(
               children: [
-                Icon(Icons.bookmark, size: 20),
+                Icon(Icons.bookmark, size: ComponentSize.iconSmall),
                 SizedBox(width: 8),
                 Text('Saved Devices', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
@@ -295,7 +296,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
             color: Colors.green[50],
             child: Row(
               children: [
-                const Icon(Icons.search, size: 20),
+                const Icon(Icons.search, size: ComponentSize.iconSmall),
                 const SizedBox(width: 8),
                 const Text('Discovered Devices', style: TextStyle(fontWeight: FontWeight.bold)),
                 const Spacer(),
@@ -352,7 +353,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
             color: Colors.blue[50],
             child: const Row(
               children: [
-                Icon(Icons.bookmark, size: 20),
+                Icon(Icons.bookmark, size: ComponentSize.iconSmall),
                 SizedBox(width: 8),
                 Text('Saved Devices', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
@@ -401,7 +402,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
             color: Colors.green[50],
             child: Row(
               children: [
-                const Icon(Icons.search, size: 20),
+                const Icon(Icons.search, size: ComponentSize.iconSmall),
                 const SizedBox(width: 8),
                 const Text('Discovered Devices', style: TextStyle(fontWeight: FontWeight.bold)),
                 const Spacer(),
@@ -452,7 +453,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
       return const Center(
         child: Text(
           'Select a device to configure',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(fontSize: FontSize.large, color: Colors.grey),
         ),
       );
     }
@@ -468,7 +469,7 @@ class _BleScannerScreenState extends State<BleScannerScreen> {
         children: [
           Text(
             _selectedDevice!.displayName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: FontSize.xlargePlus, fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
           ),
           Text(

@@ -79,8 +79,8 @@ class RecordingButton extends StatelessWidget {
       onTapCancel: canStop ? null : () => onMicReleased?.call(),
       onTap: canStop ? onStop : null,
       child: Container(
-        width: iconSize.xlarge,
-        height: iconSize.xlarge,
+        width: iconSize.xxlarge,
+        height: iconSize.xxlarge,
         decoration: BoxDecoration(
           color: canStop ? AppColors.error : _getButtonColor(),
           shape: BoxShape.circle,
@@ -98,7 +98,7 @@ class RecordingButton extends StatelessWidget {
         child: Icon(
           canStop ? AppIcons.stop : _getButtonIcon(),
           color: AppColors.white,
-          size: iconSize.medium,
+          size: iconSize.xlarge,
         ),
       ),
     );

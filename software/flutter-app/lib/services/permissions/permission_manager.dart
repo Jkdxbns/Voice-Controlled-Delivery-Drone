@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../constants/app_dimensions.dart';
+import '../../constants/app_typography.dart';
 import '../../services/preferences_service.dart';
 import '../../utils/app_logger.dart';
 import '../../ui/dialogs/microphone_permission_dialog.dart';
@@ -93,76 +95,47 @@ class PermissionManager {
     }
   }
 
-  /// Request both permissions on app startup (first time only)
+  /// Request essential permissions on app startup
+  /// Only WiFi (for device ID) and Notification are requested at startup
+  /// Microphone and Bluetooth are requested contextually when needed
   Future<void> requestStartupPermissions(BuildContext context) async {
     if (!context.mounted) return;
     
     final prefs = PreferencesService.instance;
     
     AppLogger.info('═══════════════════════════════════════════════════════');
-    AppLogger.info('[STARTUP PERMISSIONS] Checking permission status');
+    AppLogger.info('[STARTUP PERMISSIONS] Hybrid permission flow');
     AppLogger.info('═══════════════════════════════════════════════════════');
     
-    // Check if this is the first time the app is launched
-    final micAsked = prefs.micPermissionAsked;
+    // Check current flags
     final wifiAsked = prefs.wifiPermissionAsked;
-    final isFirstLaunch = !micAsked && !wifiAsked;
+    final notificationStatus = await Permission.notification.status;
     
-    AppLogger.info('Permission flags:');
-    AppLogger.info('  micPermissionAsked: $micAsked');
+    AppLogger.info('Permission status:');
     AppLogger.info('  wifiPermissionAsked: $wifiAsked');
-    AppLogger.info('  isFirstLaunch: $isFirstLaunch');
+    AppLogger.info('  notificationGranted: ${notificationStatus.isGranted}');
+    AppLogger.info('  (Microphone & Bluetooth requested contextually)');
     
-    if (isFirstLaunch) {
-      AppLogger.info('First launch detected - requesting ALL permissions');
-    } else {
-      AppLogger.info('Not first launch - checking individual permission needs');
-    }
-    
-    // Request Wi-Fi first (less intrusive)
-    if (!prefs.wifiPermissionAsked) {
+    // 1. Request Wi-Fi permission (for device identification)
+    if (!wifiAsked) {
       AppLogger.info('Requesting WiFi permission...');
       await requestWiFiPermission(context);
     } else {
       AppLogger.info('Skipping WiFi permission (already asked)');
     }
     
-    // Add small delay between dialogs for better UX
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Then request microphone
-    if (context.mounted && !prefs.micPermissionAsked) {
-      AppLogger.info('Requesting microphone permission...');
-      await requestMicrophonePermission(context);
-    } else {
-      AppLogger.info('Skipping microphone permission (already asked)');
-    }
-    
-    // Add small delay before notification permission
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Request notification permission
-    if (context.mounted) {
+    // 2. Request notification permission (if not already granted)
+    if (context.mounted && !notificationStatus.isGranted) {
       AppLogger.info('Requesting notification permission...');
       await requestNotificationPermission(context);
-    }
-    
-    // Add delay before Bluetooth permissions
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Request Bluetooth permissions (ALWAYS - no flag to skip)
-    if (context.mounted) {
-      AppLogger.info('Requesting Bluetooth permissions...');
-      final btGranted = await requestBluetoothPermissions(context);
-      if (btGranted) {
-        AppLogger.success('✅ Bluetooth permissions granted on startup');
-      } else {
-        AppLogger.warning('⚠️ Bluetooth permissions not granted on startup');
-      }
+    } else {
+      AppLogger.info('Skipping notification permission (already granted)');
     }
     
     AppLogger.info('═══════════════════════════════════════════════════════');
-    AppLogger.info('[STARTUP PERMISSIONS] Permission request flow completed');
+    AppLogger.info('[STARTUP PERMISSIONS] Startup flow completed');
+    AppLogger.info('  → Microphone: Will be requested when recording');
+    AppLogger.info('  → Bluetooth: Will be requested when scanning');
     AppLogger.info('═══════════════════════════════════════════════════════');
   }
 
@@ -194,7 +167,7 @@ class PermissionManager {
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.notifications_active, color: Colors.blue, size: 28),
+            Icon(Icons.notifications_active, color: Colors.blue, size: ComponentSize.iconLarge),
             SizedBox(width: 12),
             Text('Enable Notifications?'),
           ],
@@ -205,7 +178,7 @@ class PermissionManager {
           '• Receive new message notifications\n'
           '• Stay informed about Bluetooth status\n\n'
           'You can change this later in settings.',
-          style: TextStyle(fontSize: 14),
+          style: TextStyle(fontSize: FontSize.medium),
         ),
         actions: [
           TextButton(
@@ -337,7 +310,7 @@ class PermissionManager {
         builder: (context) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.bluetooth, color: Colors.blue, size: 28),
+              Icon(Icons.bluetooth, color: Colors.blue, size: ComponentSize.iconLarge),
               SizedBox(width: 12),
               Text('Enable Bluetooth?'),
             ],
@@ -349,7 +322,7 @@ class PermissionManager {
             '• Scan for nearby Bluetooth devices\n\n'
             'Location permission is also required by Android for Bluetooth scanning.\n\n'
             'You can manage these permissions later in app settings.',
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: FontSize.medium),
           ),
           actions: [
             TextButton(
@@ -394,7 +367,6 @@ class PermissionManager {
           }
           return false;
         }
-        await Future.delayed(const Duration(milliseconds: 300));
       }
       
       // Request Bluetooth scan
@@ -406,7 +378,6 @@ class PermissionManager {
           AppLogger.warning('Bluetooth scan permission denied');
           return false;
         }
-        await Future.delayed(const Duration(milliseconds: 300));
       }
       
       // Request Bluetooth connect
@@ -418,7 +389,6 @@ class PermissionManager {
           AppLogger.warning('Bluetooth connect permission denied');
           return false;
         }
-        await Future.delayed(const Duration(milliseconds: 300));
       }
       
       // Request Bluetooth advertise (optional, Android 13+)
@@ -487,8 +457,6 @@ class PermissionManager {
     
     // Request both permissions with forceShow flag
     await requestWiFiPermission(context, forceShow: true);
-    
-    await Future.delayed(const Duration(milliseconds: 500));
     
     // ignore: use_build_context_synchronously
     if (context.mounted) {

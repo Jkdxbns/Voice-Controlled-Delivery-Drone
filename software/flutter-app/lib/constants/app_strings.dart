@@ -104,6 +104,12 @@ class AppStrings {
   static const String settingsAppVersion = 'App Version';
   static const String settingsBuild = 'Build';
   static const String settingsPermissions = 'Permissions';
+  static const String settingsSharedFolder = 'Shared Folder';
+  static const String settingsSelectSharedFolder = 'Select shared folder';
+  static const String settingsSharedFolderNotSet = 'No shared folder selected';
+  static const String settingsSharedFolderSet = 'Shared folder selected';
+  static const String settingsClearSharedFolder = 'Clear shared folder';
+  static const String settingsSharedFolderClearHint = 'Remove access to the current shared folder';
   static const String settingsMicPermission = 'Microphone Permission';
   static const String settingsMicGranted = 'Granted - Voice recording enabled';
   static const String settingsMicNotGranted = 'Not granted - Required for voice recording';
