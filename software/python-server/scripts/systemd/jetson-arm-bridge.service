@@ -1,0 +1,17 @@
+[Unit]
+Description=Jetson Arm Bridge (Socket.IO -> Serial)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/jetson-arm
+EnvironmentFile=/etc/default/jetson-arm-bridge
+ExecStart=/usr/bin/python3 /opt/jetson-arm/jetson_arm_service.py
+Restart=always
+RestartSec=3
+User=jetson
+Group=jetson
+
+[Install]
+WantedBy=multi-user.target

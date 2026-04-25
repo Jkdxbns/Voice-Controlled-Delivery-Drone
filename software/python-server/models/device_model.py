@@ -37,6 +37,8 @@ class DeviceRegistry:
         model_name: str,
         ip_address: str,
         mac_address: Optional[str] = None,
+        device_type: str = 'android',
+        parent_device: Optional[str] = None,
     ) -> dict:
         """Add or update device in registry.
         
@@ -46,6 +48,8 @@ class DeviceRegistry:
             model_name: Device model identifier
             ip_address: Client IP address
             mac_address: Hardware MAC address (PRIMARY KEY - required)
+            device_type: Type of device ('android', 'bluetooth', etc.)
+            parent_device: MAC of parent device (for BT devices connected to a phone)
         
         Returns:
             Updated device record.
@@ -97,6 +101,8 @@ class DeviceRegistry:
                     'model_name': model_name,
                     'ip_address': ip_address,
                     'mac_address': mac_address or device_key,
+                    'device_type': device_type,
+                    'parent_device': parent_device or existing.get('parent_device'),
                     'status': 'online',
                     'first_seen': existing.get('first_seen', now),
                     'last_seen': now,
@@ -113,6 +119,8 @@ class DeviceRegistry:
                     'model_name': model_name,
                     'ip_address': ip_address,
                     'mac_address': mac_address or device_key,
+                    'device_type': device_type,
+                    'parent_device': parent_device,
                     'status': 'online',
                     'first_seen': now,
                     'last_seen': now,

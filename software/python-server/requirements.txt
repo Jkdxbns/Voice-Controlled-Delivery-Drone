@@ -1,5 +1,9 @@
 Flask==3.0.3
+flask-socketio==5.3.6
+python-socketio==5.11.0
+eventlet==0.36.1
 google-generativeai==0.7.2
 faster-whisper==1.0.3
 huggingface-hub==0.25.1
 requests==2.32.3
+pyserial==3.5
